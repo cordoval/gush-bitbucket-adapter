@@ -57,10 +57,9 @@ class BitbucketClientDecorator
 
             $this->user->getClient()
                 ->addListener(
-                new OAuthListener($oauthParams)
-            );
+                    new OAuthListener($oauthParams)
+                );
         }
-
         $this->credentials = $credentials;
     }
 

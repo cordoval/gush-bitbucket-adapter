@@ -1,11 +1,10 @@
-gush-github-adapter
+gush-bitbucket-adapter
 ===================
 
-GitHub adapter for Gush
-
+Bitbucket adapter for Gush
 
 ## To Use
 
 ```sh
-gush configure --adapter=Gush\Adapter\GitHubAdapter
+gush configure --adapter=Gush\Adapter\BitbucketAdapter
 ```
