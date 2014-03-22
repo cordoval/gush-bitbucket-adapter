@@ -1,7 +1,12 @@
 <?php
+
 /**
- * @author: Raul Rodriguez - raulrodriguez782@gmail.com
- * @created: 3/21/14 - 11:47 PM
+ * This file is part of Gush.
+ *
+ * (c) Luis Cordova <cordoval@gmail.com>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace Gush\Adapter\Decorator;
@@ -11,6 +16,9 @@ use Bitbucket\API\User;
 use Bitbucket\API\Http\Listener\BasicAuthListener;
 use Bitbucket\API;
 
+/**
+ * @author Raul Rodriguez <raulrodriguez782@gmail.com>
+ */
 class BitbucketClientDecorator
 {
     protected $user = null;
@@ -34,7 +42,7 @@ class BitbucketClientDecorator
      */
     public function addListener($auth, $credentials)
     {
-        if($auth == 'http_password') {
+        if( $auth == 'http_password' ) {
 
             $this->user->getClient()
                 ->addListener(
@@ -68,15 +76,15 @@ class BitbucketClientDecorator
 
     protected function getCredentials()
     {
-        if(isset($credentials['secret'])) {
+        if( isset($credentials['secret']) ) {
             return new API\Authentication\OAuth(
                 array(
                     'oauth_consumer_key' => $this->credentials['password-or-token'],
                     'oauth_consumer_secret' => $this->credentials['secret']
                 ));
-        } else {
-            return new API\Authentication\Basic($this->credentials['username'], $this->credentials['password-or-token']);
         }
-    }
 
+        return new API\Authentication\Basic($this->credentials['username'], $this->credentials['password-or-token']);
+
+    }
 } 

@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "gentle/bitbucket-api": "0.2.0",
+        "gentle/bitbucket-api": "~0.2",
         "gushphp/gush":               "*",
         "gushphp/gush-github-adapter": "*"
     },

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of Gush.
  *
@@ -15,6 +16,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
 use Github\HttpClient\CachedHttpClient;
 
+/**
+ * @author Raul Rodriguez <raulrodriguez782@gmail.com>
+ */
 class BitbucketAdapter extends BaseAdapter
 {
     const NAME = 'bitbucket';
@@ -32,7 +36,7 @@ class BitbucketAdapter extends BaseAdapter
     /**
      * @var Client|null
      */
-    private $client;
+    protected $client;
 
     /**
      * @var string
@@ -194,7 +198,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssues(array $parameters = [])
     {
-        
+
     }
 
     /**
