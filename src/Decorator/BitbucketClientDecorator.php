@@ -11,10 +11,10 @@
 
 namespace Gush\Adapter\Decorator;
 
-use Bitbucket\API\Http\Listener\OAuthListener;
-use Bitbucket\API\User;
-use Bitbucket\API\Http\Listener\BasicAuthListener;
 use Bitbucket\API;
+use Bitbucket\API\Http\Listener\OAuthListener;
+use Bitbucket\API\Http\Listener\BasicAuthListener;
+use Bitbucket\API\User;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>

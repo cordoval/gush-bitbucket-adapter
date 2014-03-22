@@ -11,10 +11,10 @@
 
 namespace Gush\Adapter;
 
+use Github\HttpClient\CachedHttpClient;
+use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
 use Symfony\Component\Console\Helper\DialogHelper;
 use Symfony\Component\Console\Output\OutputInterface;
-use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
-use Github\HttpClient\CachedHttpClient;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
