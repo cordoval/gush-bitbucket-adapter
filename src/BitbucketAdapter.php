@@ -194,9 +194,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssues(array $parameters = [])
     {
-        $issue = new \Bitbucket\API\Repositories\Issues();
-
-        $issue->all($account_name, $repo_slug);
+        
     }
 
     /**
