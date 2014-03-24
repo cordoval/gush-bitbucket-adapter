@@ -134,7 +134,7 @@ class BitbucketAdapter extends BaseAdapter
 
             $this->client->addListener('oauth_listener', array(
                 'username' => $credentials['username'],
-                'passord-or-token' => $credentials['password-or-token'],
+                'password-or-token' => $credentials['password-or-token'],
                 'secret' => $bitbucket['configuration']['secret'],
             ));
         }
