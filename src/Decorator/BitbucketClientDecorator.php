@@ -11,7 +11,8 @@
 
 namespace Gush\Adapter\Decorator;
 
-use Bitbucket\API;
+use Bitbucket\API\Authentication\Basic;
+use Bitbucket\API\Authentication\OAuth;
 use Bitbucket\API\Http\Listener\OAuthListener;
 use Bitbucket\API\Http\Listener\BasicAuthListener;
 use Bitbucket\API\User;
@@ -76,14 +77,14 @@ class BitbucketClientDecorator
     protected function getCredentials()
     {
         if( isset($credentials['secret']) ) {
-            return new API\Authentication\OAuth(
+            return new OAuth(
                 array(
                     'oauth_consumer_key' => $this->credentials['password-or-token'],
                     'oauth_consumer_secret' => $this->credentials['secret']
                 ));
         }
 
-        return new API\Authentication\Basic($this->credentials['username'], $this->credentials['password-or-token']);
+        return new Basic($this->credentials['username'], $this->credentials['password-or-token']);
 
     }
 } 

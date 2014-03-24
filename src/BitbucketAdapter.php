@@ -122,14 +122,14 @@ class BitbucketAdapter extends BaseAdapter
     {
         $credentials = $this->configuration->get('authentication');
 
-        if ( 'http_password' === $credentials['http-auth-type'] ) {
+        if ('http_password' === $credentials['http-auth-type']) {
             $this->client->addListener('basic_auth_listener', array(
                 'user' => $credentials['username'],
                 'pass' => $credentials['password-or-token']
             ));
         }
 
-        if( '' === $credentials['http-auth-type'] ) {
+        if ('' === $credentials['http-auth-type']) {
             $this->client->addListener('oauth_listenr', array(
                 'user' => $credentials['username'],
                 'pass' => $credentials['password-or-token'],
