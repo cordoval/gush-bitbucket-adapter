@@ -44,6 +44,11 @@ class BitbucketAdapter extends BaseAdapter
     protected $authenticationType = 'http_password';
 
     /**
+     * @var boolean
+     */
+    protected $isAuthenticated;
+
+    /**
      * Initializes the Adapter
      *
      * @return void
@@ -139,7 +144,7 @@ class BitbucketAdapter extends BaseAdapter
             ));
         }
 
-        $this->client->authenticate();
+        $this->isAuthenticated = $this->client->authenticate();
 
         return;
     }
@@ -149,7 +154,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function isAuthenticated()
     {
-        // TODO: Implement isAuthenticated() method.
+        return $this->isAuthenticated;
     }
 
     /**

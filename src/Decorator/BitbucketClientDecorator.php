@@ -72,7 +72,9 @@ class BitbucketClientDecorator
      */
     public function authenticate()
     {
-        $this->user->get();
+        $response = $this->user->get();
+
+        return $response->isSuccessful();
     }
 
     protected function getCredentials()
