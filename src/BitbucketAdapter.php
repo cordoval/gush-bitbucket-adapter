@@ -85,7 +85,7 @@ class BitbucketAdapter extends BaseAdapter
 
         $output->writeln('<comment>Enter your Bitbucket Secret: </comment>');
         $secretText = 'secret: ';
-        $config['secret'] = $dialog->askHiddenResponseAndValidate(
+        $config['configuration']['secret'] = $dialog->askHiddenResponseAndValidate(
             $output,
             $secretText,
             $validator
