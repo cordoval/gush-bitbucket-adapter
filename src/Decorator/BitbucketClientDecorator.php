@@ -27,6 +27,7 @@ class BitbucketClientDecorator
     protected $credentials = array();
 
     const AUTH_HTTP_PASSWORD = 'http_password';
+    const AUTH_HTTP_TOKEN = 'http_token';
 
     public function __construct()
     {
