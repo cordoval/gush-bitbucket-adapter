@@ -44,7 +44,7 @@ class BitbucketClientDecorator
      */
     public function addListener($auth, $credentials)
     {
-        if( $auth == 'http_password' ) {
+        if( $auth == 'basic_auth_listener' ) {
 
             $this->user->getClient()
                 ->addListener(
