@@ -15,6 +15,7 @@ use Bitbucket\API\Authentication\Basic;
 use Bitbucket\API\Authentication\OAuth;
 use Bitbucket\API\Http\Listener\OAuthListener;
 use Bitbucket\API\Http\Listener\BasicAuthListener;
+use Bitbucket\API\Repositories\Repository;
 use Bitbucket\API\User;
 
 /**
@@ -68,7 +69,7 @@ class BitbucketClientDecorator
     /**
      * Authenticate Bitbucket
      *
-     * @return void
+     * @return boolean
      */
     public function authenticate()
     {
@@ -76,6 +77,24 @@ class BitbucketClientDecorator
 
         return $response->isSuccessful();
     }
+
+    public function fork($repoToFork)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Repository');
+
+        list($org, $repoName) = explode('/', $repoToFork);
+
+        $api->fork($org, $repoName, $repoName, []);
+    }
+
+    public function api($fqnClass)
+    {
+        $api = new $fqnClass();
+        $api->setCredentials($this->getCredentials());
+
+        return $api;
+    }
+
 
     protected function getCredentials()
     {

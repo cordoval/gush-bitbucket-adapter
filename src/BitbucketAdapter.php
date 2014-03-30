@@ -165,7 +165,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getTokenGenerationUrl()
     {
-        // TODO: Implement getTokenGenerationUrl() method.
+        return null;
     }
 
     /**
@@ -173,7 +173,13 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createFork($org)
     {
-        // TODO: Implement createFork() method.
+        $result = $this->client->fork($org);
+
+        $domain = "https://bitbucket.org";
+
+        return [
+            'remote_url' => $domain . '/' . $result['owner'] . '/' . $result['name']
+        ];
     }
 
     /**
