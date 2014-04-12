@@ -128,22 +128,23 @@ class BitbucketAdapter extends BaseAdapter
         $credentials = $this->configuration->get('authentication');
 
         if (Client::AUTH_HTTP_PASSWORD === $credentials['http-auth-type']) {
-            $this->client->addListener('basic_auth_listener', array(
+            $bitbucketCredentials = array(
                 'username' => $credentials['username'],
                 'password-or-token' => $credentials['password-or-token']
-            ));
+            );
         }
 
         if (Client::AUTH_HTTP_TOKEN === $credentials['http-auth-type']) {
             $bitbucket = $this->configuration->get('bitbucket');
-
-            $this->client->addListener('oauth_listener', array(
+            $bitbucketCredentials = array(
                 'username' => $credentials['username'],
                 'password-or-token' => $credentials['password-or-token'],
                 'secret' => $bitbucket['configuration']['secret'],
-            ));
+            );
         }
 
+
+        $this->client->setCredentials($bitbucketCredentials);
         $this->isAuthenticated = $this->client->authenticate();
 
         return;
@@ -173,7 +174,10 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createFork($org)
     {
-        $result = $this->client->fork($org);
+        $result = $this->client->fork(
+            $this->getUsername(),
+            $this->getRepository(),
+            $org);
 
         $domain = "https://bitbucket.org";
 
@@ -211,13 +215,51 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssues(array $parameters = [])
     {
-        $result = $this->client->issues(
+        $response = $this->client->issues(
             $this->getUsername(),
             $this->getRepository(),
             $parameters
         );
 
-        return $result;
+        $resultArray = json_decode($response->getContent(), true);
+
+        $issuesArray = $this->adapt('issues', $resultArray['issues']);
+
+        return $issuesArray;
+    }
+
+    private function adapt($api, $array)
+    {
+        $items = [];
+
+        if ( $api == 'issues' ) {
+
+            foreach ($array as $item ) {
+                $resourceParts = explode('/', strrev($item['resource_uri']), 2);
+                $adaptedArray['number'] = $resourceParts[0];
+                $adaptedArray['state'] = $item['status'];
+                $adaptedArray['title'] = $item['title'];
+                $adaptedArray['user'] = [];
+                $adaptedArray['user']['login'] = $item['reported_by']['username'];
+                $adaptedArray['assignee'] = [];
+                $adaptedArray['assignee']['login'] = (isset($item['responsible']))
+                    ? $item['responsible']['username']
+                    : '';
+                $adaptedArray['milestone'] = [];
+                $adaptedArray['milestone']['title'] =
+                    (isset($item['metadata']['milestone']) && !is_null($item['metadata']['milestone']))
+                        ? $item['metadata']['milestone']
+                        : ''
+                ;
+                $label = $item['metadata']['kind'];
+                $adaptedArray['labels'] = [ $label , $item['priority']];
+                $adaptedArray['created_at'] = $item['utc_created_on'];
+
+                $items[] = $adaptedArray;
+            }
+        }
+
+        return $items;
     }
 
     /**

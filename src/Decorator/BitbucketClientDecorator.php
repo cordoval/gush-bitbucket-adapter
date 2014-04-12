@@ -35,34 +35,8 @@ class BitbucketClientDecorator
         $this->user = new User();
     }
 
-    /**
-     * Add Listener
-     *
-     * @param string $auth
-     * @param array $credentials
-     *
-     * @return void
-     */
-    public function addListener($auth, $credentials)
+    public function setCredentials($credentials)
     {
-        if( $auth == 'basic_auth_listener' ) {
-
-            $this->user->getClient()
-                ->addListener(
-                new BasicAuthListener($credentials['username'], $credentials['password-or-token'])
-            );
-        } else {
-
-            $oauthParams = array(
-                'oauth_consumer_key' => $credentials['password-or-token'],
-                'oauth_consumer_secret' => $credentials['secret']
-            );
-
-            $this->user->getClient()
-                ->addListener(
-                    new OAuthListener($oauthParams)
-                );
-        }
         $this->credentials = $credentials;
     }
 
@@ -73,28 +47,30 @@ class BitbucketClientDecorator
      */
     public function authenticate()
     {
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $this->user);
         $response = $this->user->get();
 
         return $response->isSuccessful();
     }
 
-    public function fork($repoToFork)
+    public function fork($username, $repository, $org)
     {
         $api = $this->api('Bitbucket\API\Repositories\Repository');
 
-        list($org, $repoName) = explode('/', $repoToFork);
-
-        $api->fork($org, $repoName, $repoName, []);
+        $api->fork($username, $repository, $org, []);
     }
 
     public function issues($username, $repository, array $parameters)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository, $parameters);
     }
 
-    public function api($fqnClass)
+    protected function api($fqnClass)
     {
         $api = new $fqnClass();
         $api->setCredentials($this->getCredentials());
@@ -102,10 +78,36 @@ class BitbucketClientDecorator
         return $api;
     }
 
+    protected function getAuth()
+    {
+        return ( isset($this->credentials['secret']) )
+            ?self::AUTH_HTTP_TOKEN
+            :self::AUTH_HTTP_PASSWORD;
+    }
+
+    protected function addAuthListener($auth, $api)
+    {
+        if ( $auth == self::AUTH_HTTP_PASSWORD) {
+            $listener = new BasicAuthListener(
+                $this->credentials['username'],
+                $this->credentials['password-or-token']
+            );
+
+        } else {
+            $listener = new OAuthListener(
+                array(
+                    'oauth_consumer_key' => $this->credentials['password-or-token'],
+                    'oauth_consumer_secret' => $this->credentials['secret']
+                )
+            );
+        }
+
+        $api->getClient()->addListener($listener);
+    }
 
     protected function getCredentials()
     {
-        if( isset($credentials['secret']) ) {
+        if( isset($this->credentials['secret']) ) {
             return new OAuth(
                 array(
                     'oauth_consumer_key' => $this->credentials['password-or-token'],
@@ -114,6 +116,5 @@ class BitbucketClientDecorator
         }
 
         return new Basic($this->credentials['username'], $this->credentials['password-or-token']);
-
     }
 } 
