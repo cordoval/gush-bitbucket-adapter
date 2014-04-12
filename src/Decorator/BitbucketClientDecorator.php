@@ -87,6 +87,13 @@ class BitbucketClientDecorator
         $api->fork($org, $repoName, $repoName, []);
     }
 
+    public function issues($username, $repository, array $parameters)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues');
+
+        return $api->all($username, $repository, $parameters);
+    }
+
     public function api($fqnClass)
     {
         $api = new $fqnClass();

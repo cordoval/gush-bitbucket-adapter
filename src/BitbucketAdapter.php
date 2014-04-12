@@ -211,7 +211,13 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssues(array $parameters = [])
     {
+        $result = $this->client->issues(
+            $this->getUsername(),
+            $this->getRepository(),
+            $parameters
+        );
 
+        return $result;
     }
 
     /**
