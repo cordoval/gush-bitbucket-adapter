@@ -192,7 +192,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function openIssue($subject, $body, array $options = [])
     {
-        // TODO: Implement openIssue() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -200,7 +200,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssue($id)
     {
-        // TODO: Implement getIssue() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -208,7 +208,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssueUrl($id)
     {
-        // TODO: Implement getIssueUrl() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -269,7 +269,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function updateIssue($id, array $parameters)
     {
-        // TODO: Implement updateIssue() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -277,7 +277,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function closeIssue($id)
     {
-        // TODO: Implement closeIssue() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -285,7 +285,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createComment($id, $message)
     {
-        // TODO: Implement createComment() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -293,7 +293,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getComments($id)
     {
-        // TODO: Implement getComments() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -301,7 +301,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getLabels()
     {
-        // TODO: Implement getLabels() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -309,7 +309,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getMilestones(array $parameters = [])
     {
-        // TODO: Implement getMilestones() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -317,7 +317,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function openPullRequest($base, $head, $subject, $body, array $parameters = [])
     {
-        // TODO: Implement openPullRequest() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -325,7 +325,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequest($id)
     {
-        // TODO: Implement getPullRequest() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -333,7 +333,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestUrl($id)
     {
-        // TODO: Implement getPullRequestUrl() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -341,7 +341,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestCommits($id)
     {
-        // TODO: Implement getPullRequestCommits() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -349,7 +349,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function mergePullRequest($id, $message)
     {
-        // TODO: Implement mergePullRequest() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -357,7 +357,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createRelease($name, array $parameters = [])
     {
-        // TODO: Implement createRelease() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -365,7 +365,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getReleases()
     {
-        // TODO: Implement getReleases() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -373,7 +373,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function removeRelease($id)
     {
-        // TODO: Implement removeRelease() method.
+        throw new \Exception("Pending implementation");
     }
 
     /**
@@ -381,6 +381,6 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createReleaseAssets($id, $name, $contentType, $content)
     {
-        // TODO: Implement createReleaseAssets() method.
+        throw new \Exception("Pending implementation");
     }
 }
