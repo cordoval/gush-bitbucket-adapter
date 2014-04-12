@@ -1,4 +1,4 @@
-gush-bitbucket-adapter
+Gush Bitbucket Adapter
 ===================
 
 Bitbucket adapter for Gush
