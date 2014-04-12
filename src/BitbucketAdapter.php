@@ -174,15 +174,17 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createFork($org)
     {
-        $result = $this->client->fork(
+        $response = $this->client->fork(
             $this->getUsername(),
             $this->getRepository(),
             $org);
 
         $domain = "https://bitbucket.org";
+        $org = $response->getContent();
+        $orgParts = explode("=", $org);
 
         return [
-            'remote_url' => $domain . '/' . $result['owner'] . '/' . $result['name']
+            'remote_url' => $domain . '/' . $orgParts[1] . '/' . $this->getRepository()
         ];
     }
 
