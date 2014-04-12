@@ -40,11 +40,6 @@ class BitbucketClientDecorator
         $this->credentials = $credentials;
     }
 
-    /**
-     * Authenticate Bitbucket
-     *
-     * @return boolean
-     */
     public function authenticate()
     {
         $auth = $this->getAuth();
