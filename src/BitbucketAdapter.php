@@ -104,7 +104,7 @@ class BitbucketAdapter extends BaseAdapter
                 return filter_var($url, FILTER_VALIDATE_URL);
             },
             false,
-            'https://bitbucket.org/api/2.0/'
+            'https://api.bitbucket.org/'
         );
 
         $config['repo_domain_url'] = $dialog->askAndValidate(
