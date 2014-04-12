@@ -57,8 +57,10 @@ class BitbucketClientDecorator
     public function fork($username, $repository, $org)
     {
         $api = $this->api('Bitbucket\API\Repositories\Repository');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
 
-        $api->fork($username, $repository, $org, []);
+        return $api->fork($username, $repository, $org, []);
     }
 
     public function issues($username, $repository, array $parameters)
