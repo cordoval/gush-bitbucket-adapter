@@ -99,7 +99,7 @@ class BitbucketAdapter extends BaseAdapter
         $output->writeln('<comment>Enter your Bitbucket URL: </comment>');
         $config['base_url'] = $dialog->askAndValidate(
             $output,
-            'Api url: ',
+            'Api url [https://api.bitbucket.org/]:',
             function ($url) {
                 return filter_var($url, FILTER_VALIDATE_URL);
             },
@@ -109,7 +109,7 @@ class BitbucketAdapter extends BaseAdapter
 
         $config['repo_domain_url'] = $dialog->askAndValidate(
             $output,
-            'Repo domain url: ',
+            'Repo domain url [bitbucket.org]: ',
             function ($field) {
                 return $field;
             },
