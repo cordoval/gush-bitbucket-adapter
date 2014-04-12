@@ -251,8 +251,9 @@ class BitbucketAdapter extends BaseAdapter
                         ? $item['metadata']['milestone']
                         : ''
                 ;
-                $label = $item['metadata']['kind'];
-                $adaptedArray['labels'] = [ $label , $item['priority']];
+                $adaptedArray['labels'] = [];
+                $adaptedArray['labels'][]= ['name' => $item['metadata']['kind']];
+                $adaptedArray['labels'][] =['name' => $item['priority']];
                 $adaptedArray['created_at'] = $item['utc_created_on'];
 
                 $items[] = $adaptedArray;
