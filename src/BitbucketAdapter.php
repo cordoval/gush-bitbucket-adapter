@@ -180,11 +180,10 @@ class BitbucketAdapter extends BaseAdapter
             $org);
 
         $domain = "https://bitbucket.org";
-        $org = $response->getContent();
-        $orgParts = explode("=", $org);
+        $resultArray = json_decode($response->getContent(), true);
 
         return [
-            'remote_url' => $domain . '/' . $orgParts[1] . '/' . $this->getRepository()
+            'remote_url' => $domain . '/' . $resultArray['owner'] . '/' . $resultArray['slug']
         ];
     }
 
