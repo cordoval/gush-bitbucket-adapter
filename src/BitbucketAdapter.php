@@ -357,6 +357,14 @@ class BitbucketAdapter extends BaseAdapter
     /**
      * {@inheritdoc}
      */
+    public function getPullRequests()
+    {
+        throw new \Exception("Pending implementation");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function createRelease($name, array $parameters = [])
     {
         throw new \Exception("Pending implementation");
