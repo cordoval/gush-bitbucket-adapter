@@ -58,13 +58,40 @@ class BitbucketClientDecorator
         return $api->fork($username, $repository, $org, []);
     }
 
-    public function issues($username, $repository, array $parameters)
+    public function getIssues($username, $repository, array $parameters)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
         $auth = $this->getAuth();
         $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository, $parameters);
+    }
+
+    public function openIssue($username, $repository, array $parameters)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->create($username, $repository, $parameters);
+    }
+
+    public function getIssue($username, $repository, $id)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->get($username, $repository, $id);
+    }
+
+    public function updateIssue($username, $repository, $id, array $parameters)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->update($username, $repository, $id, $parameters);
     }
 
     protected function api($fqnClass)

@@ -64,12 +64,7 @@ class BitbucketAdapter extends BaseAdapter
     protected function buildBitbucketClient()
     {
         $config = $this->configuration->get('bitbucket');
-        $cachedClient = new CachedHttpClient([
-            'cache_dir' => $this->configuration->get('cache-dir'),
-            'base_url'  => $config['base_url']
-        ]);
-
-        $client = new Client($cachedClient);
+        $client = new Client();
         $this->url = rtrim($config['base_url'], '/');
         $this->domain = rtrim($config['repo_domain_url'], '/');
 
@@ -192,7 +187,15 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function openIssue($subject, $body, array $options = [])
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->openIssue(
+            $this->getUsername(),
+            $this->getRepository(),
+            array_merge($options, ['title' => $subject, 'content' => $body])
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        return ['number' => $resultArray['local_id'] ];
     }
 
     /**
@@ -200,7 +203,16 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssue($id)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getIssue(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $issue = $this->adapt('getIssue', $resultArray);
+
+        return $issue;
     }
 
     /**
@@ -208,7 +220,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssueUrl($id)
     {
-        throw new \Exception("Pending implementation");
+        return sprintf('https://%s/%s/%s/issue/%d', $this->domain, $this->getUsername(), $this->getRepository(), $id);
     }
 
     /**
@@ -216,7 +228,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getIssues(array $parameters = [])
     {
-        $response = $this->client->issues(
+        $response = $this->client->getIssues(
             $this->getUsername(),
             $this->getRepository(),
             $parameters
@@ -224,44 +236,9 @@ class BitbucketAdapter extends BaseAdapter
 
         $resultArray = json_decode($response->getContent(), true);
 
-        $issuesArray = $this->adapt('issues', $resultArray['issues']);
+        $issuesArray = $this->adapt('getIssues', $resultArray['issues']);
 
         return $issuesArray;
-    }
-
-    private function adapt($api, $array)
-    {
-        $items = [];
-
-        if ( $api == 'issues' ) {
-
-            foreach ($array as $item ) {
-                $resourceParts = explode('/', strrev($item['resource_uri']), 2);
-                $adaptedArray['number'] = $resourceParts[0];
-                $adaptedArray['state'] = $item['status'];
-                $adaptedArray['title'] = $item['title'];
-                $adaptedArray['user'] = [];
-                $adaptedArray['user']['login'] = $item['reported_by']['username'];
-                $adaptedArray['assignee'] = [];
-                $adaptedArray['assignee']['login'] = (isset($item['responsible']))
-                    ? $item['responsible']['username']
-                    : '';
-                $adaptedArray['milestone'] = [];
-                $adaptedArray['milestone']['title'] =
-                    (isset($item['metadata']['milestone']) && !is_null($item['metadata']['milestone']))
-                        ? $item['metadata']['milestone']
-                        : ''
-                ;
-                $adaptedArray['labels'] = [];
-                $adaptedArray['labels'][]= ['name' => $item['metadata']['kind']];
-                $adaptedArray['labels'][] =['name' => $item['priority']];
-                $adaptedArray['created_at'] = $item['utc_created_on'];
-
-                $items[] = $adaptedArray;
-            }
-        }
-
-        return $items;
     }
 
     /**
@@ -269,7 +246,23 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function updateIssue($id, array $parameters)
     {
-        throw new \Exception("Pending implementation");
+        if(isset($parameters['assignee'])) {
+            $username = $parameters['assignee'];
+            $parameters['responsible'] = $username;
+
+            unset($parameters['assignee']);
+        }
+
+        $response = $this->client->updateIssue(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            $parameters
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        return ['number' => $resultArray['local_id'] ];
     }
 
     /**
@@ -277,7 +270,16 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function closeIssue($id)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->updateIssue(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            ['status' => 'resolved']
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        return ['number' => $resultArray['local_id'] ];
     }
 
     /**
@@ -382,5 +384,62 @@ class BitbucketAdapter extends BaseAdapter
     public function createReleaseAssets($id, $name, $contentType, $content)
     {
         throw new \Exception("Pending implementation");
+    }
+
+    private function adapt($api, $array)
+    {
+        $result = [];
+
+        if ( $api == 'getIssues' ) {
+
+            foreach ($array as $item ) {
+                $adaptedArray = [];
+                $resourceParts = explode('/', strrev($item['resource_uri']), 2);
+                $adaptedArray['number'] = $resourceParts[0];
+                $adaptedArray['state'] = $item['status'];
+                $adaptedArray['title'] = $item['title'];
+                $adaptedArray['user'] = [];
+                $adaptedArray['user']['login'] = $item['reported_by']['username'];
+                $adaptedArray['assignee'] = [];
+                $adaptedArray['assignee']['login'] = (isset($item['responsible']))
+                    ? $item['responsible']['username']
+                    : '';
+                $adaptedArray['milestone'] = [];
+                $adaptedArray['milestone']['title'] =
+                    (isset($item['metadata']['milestone']) && !is_null($item['metadata']['milestone']))
+                        ? $item['metadata']['milestone']
+                        : ''
+                ;
+                $adaptedArray['labels'] = [];
+                $adaptedArray['labels'][]= ['name' => $item['metadata']['kind']];
+                $adaptedArray['labels'][] =['name' => $item['priority']];
+                $adaptedArray['created_at'] = $item['utc_created_on'];
+
+                $result[] = $adaptedArray;
+            }
+        } else if ($api == 'getIssue') {
+
+            $result['number'] = $array['local_id'];
+            $result['state'] = $array['status'];
+            $result['user'] = [];
+            $result['user']['login'] = $array['reported_by']['username'];
+            $result['assignee'] = [];
+            $result['assignee']['login'] = (isset($array['responsible']))
+                ? $array['responsible']['username']
+                : '';
+            $result['title'] = $array['title'];
+            $result['body'] = $array['content'];
+            $result['milestone'] = [];
+            $result['milestone']['title'] =
+                (isset($array['metadata']['milestone']) && !is_null($array['metadata']['milestone']))
+                    ? $array['metadata']['milestone']
+                    : ''
+            ;
+            $result['labels'] = [];
+            $result['labels'][]= ['name' => $array['metadata']['kind']];
+            $result['labels'][] =['name' => $array['priority']];
+        }
+
+        return $result;
     }
 }
