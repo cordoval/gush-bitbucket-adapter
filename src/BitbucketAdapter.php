@@ -341,6 +341,7 @@ class BitbucketAdapter extends BaseAdapter
         );
 
         $resultArray = json_decode($response->getContent(), true);
+        
         $milestones = array_map(function($milestone) {
             return ['title' => $milestone['name'], 'number' => $milestone['id']];
         }, $resultArray);
