@@ -287,7 +287,16 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createComment($id, $message)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->createComment(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            $message
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        return ['number' => $resultArray['comment_id']];
     }
 
     /**
@@ -295,7 +304,22 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getComments($id)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getComments(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        $comments = array_map(function($commentRow){
+            $comment = [];
+            $comment['user'] = ['login' => $commentRow['author_info']['username']];
+            $comment['body'] = $commentRow['content'];
+            $comment['created_at'] = $commentRow['utc_created_on'];
+        }, $resultArray);
+
+        return $comments;
     }
 
     /**
@@ -311,7 +335,18 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getMilestones(array $parameters = [])
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getMilestones(
+            $this->getUsername(),
+            $this->getRepository()
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        
+        $milestones = array_map(function($milestone) {
+            return ['title' => $milestone['name'], 'number' => $milestone['id']];
+        }, $resultArray);
+
+        return $milestones;
     }
 
     /**

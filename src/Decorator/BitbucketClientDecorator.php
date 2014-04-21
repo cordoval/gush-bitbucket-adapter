@@ -94,6 +94,33 @@ class BitbucketClientDecorator
         return $api->update($username, $repository, $id, $parameters);
     }
 
+    public function createComment($username, $repository, $id, $message)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues\Comments');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->create($username, $repository, $id, $message);
+    }
+
+    public function getComments($username, $repository, $id)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues\Comments');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->all($username, $repository, $id);
+    }
+
+    public function getMilestones($username, $repository)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\Issues\Milestones');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->all($username, $repository);
+    }
+
     protected function api($fqnClass)
     {
         $api = new $fqnClass();
