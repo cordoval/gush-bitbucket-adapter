@@ -94,6 +94,15 @@ class BitbucketClientDecorator
         return $api->update($username, $repository, $id, $parameters);
     }
 
+    public function getPullRequests($username, $repository, array $params = [])
+    {
+        $api = $this->api('Bitbucket\API\Repositories\PullRequests');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->all($username, $repository, $params);
+    }
+
     protected function api($fqnClass)
     {
         $api = new $fqnClass();
