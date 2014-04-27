@@ -392,6 +392,51 @@ class BitbucketAdapter extends BaseAdapter
     /**
      * {@inheritdoc}
      */
+    public function getPullRequests($state = null)
+    {
+        $response = $this->client->getPullRequests(
+            $this->getUsername(),
+            $this->getRepository(),
+            array(
+                'state' => $state
+            )
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $returnArray = [];
+
+        foreach ($resultArray['values'] as $result) {
+            $returnArray[] = [
+                'number'      => $result['id'],
+                'title'       => $result['title'],
+                'state'       => $result['state'],
+                'created_at'  => $result['created_on'],
+                'head'        => [
+                    'user' => [
+                        'login' => $result['author']['username'],
+                    ],
+                ],
+            ];
+        }
+
+        return $returnArray;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPullRequestStates()
+    {
+        return [
+            'OPEN',
+            'MERGED',
+            'DECLINED',
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function createRelease($name, array $parameters = [])
     {
         throw new \Exception("Pending implementation");
