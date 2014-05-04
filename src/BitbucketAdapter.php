@@ -13,6 +13,7 @@ namespace Gush\Adapter;
 
 use Github\HttpClient\CachedHttpClient;
 use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
+use Gush\Config;
 use Symfony\Component\Console\Helper\DialogHelper;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -49,12 +50,12 @@ class BitbucketAdapter extends BaseAdapter
     protected $isAuthenticated;
 
     /**
-     * Initializes the Adapter
-     *
-     * @return void
-     */
-    protected function initialize()
+    * {@inheritdoc}
+    */
+    public function __construct(Config $configuration)
     {
+        parent::__construct($configuration);
+
         $this->client = $this->buildBitbucketClient();
     }
 
@@ -94,12 +95,12 @@ class BitbucketAdapter extends BaseAdapter
         $output->writeln('<comment>Enter your Bitbucket URL: </comment>');
         $config['base_url'] = $dialog->askAndValidate(
             $output,
-            'Api url [https://api.bitbucket.org/]:',
+            'Api url [https://bitbucket.org/api/1.0/]:',
             function ($url) {
                 return filter_var($url, FILTER_VALIDATE_URL);
             },
             false,
-            'https://api.bitbucket.org/'
+            'https://bitbucket.org/api/1.0/'
         );
 
         $config['repo_domain_url'] = $dialog->askAndValidate(
