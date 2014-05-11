@@ -52,17 +52,13 @@ class BitbucketClientDecorator
     public function fork($username, $repository, $org)
     {
         $api = $this->api('Bitbucket\API\Repositories\Repository');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
-
+        
         return $api->fork($username, $repository, $org, []);
     }
 
     public function getIssues($username, $repository, array $parameters)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository, $parameters);
     }
@@ -70,8 +66,6 @@ class BitbucketClientDecorator
     public function openIssue($username, $repository, array $parameters)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->create($username, $repository, $parameters);
     }
@@ -79,8 +73,6 @@ class BitbucketClientDecorator
     public function getIssue($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->get($username, $repository, $id);
     }
@@ -88,8 +80,6 @@ class BitbucketClientDecorator
     public function updateIssue($username, $repository, $id, array $parameters)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->update($username, $repository, $id, $parameters);
     }
@@ -97,8 +87,6 @@ class BitbucketClientDecorator
     public function getPullRequests($username, $repository, array $params = [])
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository, $params);
     }
@@ -106,8 +94,6 @@ class BitbucketClientDecorator
     public function createComment($username, $repository, $id, $message)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues\Comments');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->create($username, $repository, $id, $message);
     }
@@ -115,8 +101,6 @@ class BitbucketClientDecorator
     public function getComments($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues\Comments');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository, $id);
     }
@@ -124,8 +108,6 @@ class BitbucketClientDecorator
     public function getMilestones($username, $repository)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues\Milestones');
-        $auth = $this->getAuth();
-        $this->addAuthListener($auth, $api);
 
         return $api->all($username, $repository);
     }
@@ -134,6 +116,8 @@ class BitbucketClientDecorator
     {
         $api = new $fqnClass();
         $api->setCredentials($this->getCredentials());
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
 
         return $api;
     }
