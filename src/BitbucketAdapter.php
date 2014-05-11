@@ -11,7 +11,6 @@
 
 namespace Gush\Adapter;
 
-use Github\HttpClient\CachedHttpClient;
 use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
 use Gush\Config;
 use Symfony\Component\Console\Helper\DialogHelper;
@@ -342,7 +341,7 @@ class BitbucketAdapter extends BaseAdapter
         );
 
         $resultArray = json_decode($response->getContent(), true);
-        
+
         $milestones = array_map(function($milestone) {
             return ['title' => $milestone['name'], 'number' => $milestone['id']];
         }, $resultArray);
