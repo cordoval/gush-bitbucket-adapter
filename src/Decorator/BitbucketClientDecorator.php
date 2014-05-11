@@ -90,7 +90,43 @@ class BitbucketClientDecorator
 
         return $api->all($username, $repository, $params);
     }
-    
+
+    public function getPullRequest($username, $repository, $id)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\PullRequests');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->get($username, $repository, $id);
+    }
+
+    public function getPullRequestCommits($username, $repository, $id)
+    {
+        $api = $this->api('Bitbucket\API\Repositories\PullRequests');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->commits($username, $repository, $id);
+    }
+
+    public function createPullRequest($username, $repository, $params = array())
+    {
+        $api = $this->api('Bitbucket\API\Repositories\PullRequests');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->create($username, $repository, $params);
+    }
+
+    public function mergePullRequests($username, $repository, $id, array $params = [])
+    {
+        $api = $this->api('Bitbucket\API\Repositories\PullRequests');
+        $auth = $this->getAuth();
+        $this->addAuthListener($auth, $api);
+
+        return $api->accept($username, $repository, $id, $params);
+    }
+
     public function createComment($username, $repository, $id, $message)
     {
         $api = $this->api('Bitbucket\API\Repositories\Issues\Comments');
@@ -161,4 +197,4 @@ class BitbucketClientDecorator
 
         return new Basic($this->credentials['username'], $this->credentials['password-or-token']);
     }
-} 
+}

@@ -13,7 +13,7 @@
         }
     ],
     "require": {
-        "gentle/bitbucket-api": "~0.2",
+        "gentle/bitbucket-api": "dev-develop@dev",
         "gushphp/gush": "*",
         "gushphp/gush-github-adapter": "*"
     },

@@ -354,7 +354,31 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function openPullRequest($base, $head, $subject, $body, array $parameters = [])
     {
-        throw new \Exception("Pending implementation");
+        list($sourceOrg, $sourceBranch)=explode(':', $head, 2);
+
+        $response = $this->client->createPullRequest(
+            $this->getUsername(),
+            $this->getRepository(),
+            [
+                'title' => $subject,
+                'description' => $body,
+                'source' => [
+                    'branch' => [
+                        'name'  => $sourceBranch
+                    ],
+                    'repository' => [
+                        'full_name' => $sourceOrg.'/'.$sourceBranch
+                    ]
+                ],
+                'destination' => [
+                    'branch' => [
+                        'name'  => $base
+                    ]
+                ],
+            ]
+        );
+
+        return ['html_url' => $response->getHeader('Location')];
     }
 
     /**
@@ -362,7 +386,16 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequest($id)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getPullRequest(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $pullRequest = $this->adapt('getPullRequest', $resultArray);
+
+        return $pullRequest;
     }
 
     /**
@@ -370,7 +403,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestUrl($id)
     {
-        throw new \Exception("Pending implementation");
+        return sprintf('https://%s/%s/%s/pull-requests/%d', $this->domain, $this->getUsername(), $this->getRepository(), $id);
     }
 
     /**
@@ -378,7 +411,18 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestCommits($id)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getPullRequest(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+
+        // FIXME this will not all commits due to page-limiting
+
+        $resultArray = json_decode($response->getContent(), true);
+        $commits = $this->adapt('getPullRequestCommits', $resultArray);
+
+        return $commits;
     }
 
     /**
@@ -386,7 +430,24 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function mergePullRequest($id, $message)
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->mergePullRequests(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            ['message' => $message]
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        if ('MERGED' !== $resultArray['state']) {
+            return ['message' => $response->getContent()];
+        }
+
+        return [
+            'merged' => true,
+            'sha' => $resultArray['merge_commit']['hash'],
+            'message' => 'Pull Request successfully merged',
+        ];
     }
 
     /**
@@ -518,6 +579,19 @@ class BitbucketAdapter extends BaseAdapter
             $result['labels'] = [];
             $result['labels'][]= ['name' => $array['metadata']['kind']];
             $result['labels'][] =['name' => $array['priority']];
+        } else if ($api == 'getPullRequest') {
+
+            $result['base']['label'] = $array['destination']['repository']['name']; // FIXME
+            $result['title'] = $array['title'];
+            $result['body'] = $array['description'];
+        } else if ($api == 'getPullRequestCommits') {
+
+            foreach ($array['values'] as $commitItem ) { // FIXME
+                $commit['sha'] = $commitItem['hash'];
+                $commit['commit']['message'] = $commitItem['message'];
+                $commit['author']['login'] = $commitItem['author']['user']['username'];
+                $result[] = $commit;
+            }
         }
 
         return $result;
