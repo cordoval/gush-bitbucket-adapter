@@ -10,12 +10,15 @@
         {
             "name": "Luis Cordova",
             "email": "cordoval@gmail.com"
+        },
+        {
+            "name": "Sebastiaan Stok",
+            "email": "s.stok@rollercapes.net"
         }
     ],
     "require": {
-        "gentle/bitbucket-api": "dev-develop@dev",
-        "gushphp/gush": "*",
-        "gushphp/gush-github-adapter": "*"
+        "gentle/bitbucket-api": "~0.4",
+        "gushphp/gush": "*"
     },
     "autoload": {
         "psr-4": {
