@@ -11,157 +11,41 @@
 
 namespace Gush\Adapter;
 
-use Gush\Adapter\Decorator\BitbucketClientDecorator as Client;
-use Gush\Config;
-use Symfony\Component\Console\Helper\DialogHelper;
-use Symfony\Component\Console\Output\OutputInterface;
+use Gush\Adapter\Client\BitbucketRepositoryClient;
+use Gush\Exception\AdapterException;
+use Herrera\Version\Parser;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
+ * @author Sebastiaan Stok <s.stok@rollerscapes.net>
  */
 class BitbucketAdapter extends BaseAdapter
 {
-    const NAME = 'bitbucket';
+    use BitbucketTrait;
 
     /**
-     * @var string|null
-     */
-    protected $url;
-
-    /**
-     * @var string|null
-     */
-    protected $domain;
-
-    /**
-     * @var Client|null
+     * @var BitbucketRepositoryClient
      */
     protected $client;
 
     /**
-     * @var string
-     */
-    protected $authenticationType = 'http_password';
-
-    /**
-     * @var boolean
-     */
-    protected $isAuthenticated;
-
-    /**
-    * {@inheritdoc}
-    */
-    public function __construct(Config $configuration)
-    {
-        parent::__construct($configuration);
-
-        $this->client = $this->buildBitbucketClient();
-    }
-
-    /**
-     * @return Client
+     * @return BitbucketRepositoryClient
      */
     protected function buildBitbucketClient()
     {
-        $config = $this->configuration->get('bitbucket');
-        $client = new Client();
-        $this->url = rtrim($config['base_url'], '/');
-        $this->domain = rtrim($config['repo_domain_url'], '/');
+        $client = new BitbucketRepositoryClient($this->config);
+        $this->url = rtrim($this->config['base_url'], '/');
+        $this->domain = rtrim($this->config['repo_domain_url'], '/');
 
         return $client;
-    }
-
-    public static function doConfiguration(OutputInterface $output, DialogHelper $dialog)
-    {
-        $config = [];
-
-        $validator = function ($field) {
-            if (empty($field)) {
-                throw new \InvalidArgumentException('The field cannot be empty.');
-            }
-
-            return $field;
-        };
-
-        $output->writeln('<comment>Enter your Bitbucket Secret: </comment>');
-        $secretText = 'secret: ';
-        $config['configuration']['secret'] = $dialog->askHiddenResponseAndValidate(
-            $output,
-            $secretText,
-            $validator
-        );
-
-        $output->writeln('<comment>Enter your Bitbucket URL: </comment>');
-        $config['base_url'] = $dialog->askAndValidate(
-            $output,
-            'Api url [https://bitbucket.org/api/1.0/]:',
-            function ($url) {
-                return filter_var($url, FILTER_VALIDATE_URL);
-            },
-            false,
-            'https://bitbucket.org/api/1.0/'
-        );
-
-        $config['repo_domain_url'] = $dialog->askAndValidate(
-            $output,
-            'Repo domain url [bitbucket.org]: ',
-            function ($field) {
-                return $field;
-            },
-            false,
-            'bitbucket.org'
-        );
-
-        return $config;
-    }
-
-    /**
-     * @return Boolean
-     */
-    public function authenticate()
-    {
-        $credentials = $this->configuration->get('authentication');
-
-        if (Client::AUTH_HTTP_PASSWORD === $credentials['http-auth-type']) {
-            $bitbucketCredentials = array(
-                'username' => $credentials['username'],
-                'password-or-token' => $credentials['password-or-token']
-            );
-        }
-
-        if (Client::AUTH_HTTP_TOKEN === $credentials['http-auth-type']) {
-            $bitbucket = $this->configuration->get('bitbucket');
-            $bitbucketCredentials = array(
-                'username' => $credentials['username'],
-                'password-or-token' => $credentials['password-or-token'],
-                'secret' => $bitbucket['configuration']['secret'],
-            );
-        }
-
-
-        $this->client->setCredentials($bitbucketCredentials);
-        $this->isAuthenticated = $this->client->authenticate();
-
-        return;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function isAuthenticated()
+    public function supportsRepository($remoteUrl)
     {
-        return $this->isAuthenticated;
-    }
-
-    /**
-     * Returns the URL for generating a token.
-     * If the adapter does not support tokens, returns null
-     *
-     * @return null|string
-     */
-    public function getTokenGenerationUrl()
-    {
-        return null;
+        return false !== stripos($remoteUrl, 'bitbucket.org');
     }
 
     /**
@@ -172,114 +56,15 @@ class BitbucketAdapter extends BaseAdapter
         $response = $this->client->fork(
             $this->getUsername(),
             $this->getRepository(),
-            $org);
+            $org
+        );
 
-        $domain = "https://bitbucket.org";
         $resultArray = json_decode($response->getContent(), true);
 
         return [
-            'remote_url' => $domain . '/' . $resultArray['owner'] . '/' . $resultArray['slug']
+            'git_url' => 'git@bitbucket.org:'.$resultArray['owner'].'/'.$resultArray['slug'].'.git',
+            'html_url' => $this->domain.'/'.$resultArray['owner'].'/'.$resultArray['slug'],
         ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function openIssue($subject, $body, array $options = [])
-    {
-        $response = $this->client->openIssue(
-            $this->getUsername(),
-            $this->getRepository(),
-            array_merge($options, ['title' => $subject, 'content' => $body])
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-
-        return ['number' => $resultArray['local_id'] ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getIssue($id)
-    {
-        $response = $this->client->getIssue(
-            $this->getUsername(),
-            $this->getRepository(),
-            $id
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-        $issue = $this->adapt('getIssue', $resultArray);
-
-        return $issue;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getIssueUrl($id)
-    {
-        return sprintf('https://%s/%s/%s/issue/%d', $this->domain, $this->getUsername(), $this->getRepository(), $id);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getIssues(array $parameters = [])
-    {
-        $response = $this->client->getIssues(
-            $this->getUsername(),
-            $this->getRepository(),
-            $parameters
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-
-        $issuesArray = $this->adapt('getIssues', $resultArray['issues']);
-
-        return $issuesArray;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function updateIssue($id, array $parameters)
-    {
-        if(isset($parameters['assignee'])) {
-            $username = $parameters['assignee'];
-            $parameters['responsible'] = $username;
-
-            unset($parameters['assignee']);
-        }
-
-        $response = $this->client->updateIssue(
-            $this->getUsername(),
-            $this->getRepository(),
-            $id,
-            $parameters
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-
-        return ['number' => $resultArray['local_id'] ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function closeIssue($id)
-    {
-        $response = $this->client->updateIssue(
-            $this->getUsername(),
-            $this->getRepository(),
-            $id,
-            ['status' => 'resolved']
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-
-        return ['number' => $resultArray['local_id'] ];
     }
 
     /**
@@ -296,7 +81,14 @@ class BitbucketAdapter extends BaseAdapter
 
         $resultArray = json_decode($response->getContent(), true);
 
-        return ['number' => $resultArray['comment_id']];
+        return sprintf(
+            'https://%s/%s/%s/pull-request/%d/_/diff#comment-%d',
+            $this->domain,
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            $resultArray['comment_id']
+        );
     }
 
     /**
@@ -310,14 +102,20 @@ class BitbucketAdapter extends BaseAdapter
             $id
         );
 
-        $resultArray = json_decode($response->getContent(), true);
+        $fetchedComments = json_decode($response->getContent(), true);
 
-        $comments = array_map(function($commentRow){
-            $comment = [];
-            $comment['user'] = ['login' => $commentRow['author_info']['username']];
-            $comment['body'] = $commentRow['content'];
-            $comment['created_at'] = $commentRow['utc_created_on'];
-        }, $resultArray);
+        $comments = [];
+
+        foreach ($fetchedComments as $comment) {
+            $comments[] = [
+                'id' => $comment['id'],
+                'url' => $comment['links']['html'],
+                'body' => $comment['content']['raw'],
+                'user' => $comment['user']['username'],
+                'created_at' => !empty($comment['created_on']) ? new \DateTime($comment['created_on']) : null,
+                'updated_at' => !empty($comment['updated_on']) ? new \DateTime($comment['updated_on']) : null,
+            ];
+        }
 
         return $comments;
     }
@@ -327,7 +125,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getLabels()
     {
-        throw new \Exception("Pending implementation");
+        throw new \Exception('BitBucket doesn\'t support components (labels) for pull request.');
     }
 
     /**
@@ -335,18 +133,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getMilestones(array $parameters = [])
     {
-        $response = $this->client->getMilestones(
-            $this->getUsername(),
-            $this->getRepository()
-        );
-
-        $resultArray = json_decode($response->getContent(), true);
-
-        $milestones = array_map(function($milestone) {
-            return ['title' => $milestone['name'], 'number' => $milestone['id']];
-        }, $resultArray);
-
-        return $milestones;
+        throw new \Exception('BitBucket doesn\'t support Milestones for pull request.');
     }
 
     /**
@@ -364,21 +151,26 @@ class BitbucketAdapter extends BaseAdapter
                 'description' => $body,
                 'source' => [
                     'branch' => [
-                        'name'  => $sourceBranch
+                        'name' => $sourceBranch,
                     ],
                     'repository' => [
-                        'full_name' => $sourceOrg.'/'.$sourceBranch
-                    ]
+                        'full_name' => $sourceOrg.'/'.$sourceBranch,
+                    ],
                 ],
                 'destination' => [
                     'branch' => [
-                        'name'  => $base
-                    ]
+                        'name' => $base,
+                    ],
                 ],
             ]
         );
 
-        return ['html_url' => $response->getHeader('Location')];
+        $resultArray = json_decode($response->getContent(), true);
+
+        return [
+            'html_url' => $response->getHeader('Location'),
+            'number' => $resultArray['id']
+        ];
     }
 
     /**
@@ -393,9 +185,8 @@ class BitbucketAdapter extends BaseAdapter
         );
 
         $resultArray = json_decode($response->getContent(), true);
-        $pullRequest = $this->adapt('getPullRequest', $resultArray);
 
-        return $pullRequest;
+        return $this->adaptPullRequestStructure($resultArray);
     }
 
     /**
@@ -403,7 +194,13 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestUrl($id)
     {
-        return sprintf('https://%s/%s/%s/pull-requests/%d', $this->domain, $this->getUsername(), $this->getRepository(), $id);
+        return sprintf(
+            'https://%s/%s/%s/pull-requests/%d',
+            $this->domain,
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
     }
 
     /**
@@ -411,16 +208,25 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getPullRequestCommits($id)
     {
-        $response = $this->client->getPullRequest(
+        $response = $this->client->getPullRequestCommits(
             $this->getUsername(),
             $this->getRepository(),
             $id
         );
 
-        // FIXME this will not all commits due to page-limiting
+        // FIXME this will not get all commits due to page-limiting
 
         $resultArray = json_decode($response->getContent(), true);
-        $commits = $this->adapt('getPullRequestCommits', $resultArray);
+
+        $commits = [];
+
+        foreach ($resultArray['values'] as $commit) {
+            $commits[] = [
+                'sha' => $commit['hash'],
+                'user' => $commit['author']['user']['username'],
+                'message' => $commit['message'],
+            ];
+        }
 
         return $commits;
     }
@@ -438,22 +244,39 @@ class BitbucketAdapter extends BaseAdapter
         );
 
         $resultArray = json_decode($response->getContent(), true);
-
         if ('MERGED' !== $resultArray['state']) {
-            return ['message' => $response->getContent()];
+            throw new AdapterException($response->getContent());
         }
 
-        return [
-            'merged' => true,
-            'sha' => $resultArray['merge_commit']['hash'],
-            'message' => 'Pull Request successfully merged',
-        ];
+        return $resultArray['merge_commit']['hash'];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getPullRequests($state = null)
+    public function updatePullRequest($id, array $parameters)
+    {
+        // BitBucket requires the existing values to be passed with it
+        // At the moment only PullRequestAssignCommand uses this method directly
+        throw new \Exception("Pending implementation");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function closePullRequest($id)
+    {
+        $this->client->closePullRequest(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPullRequests($state = null, $page = 1, $perPage = 30)
     {
         $response = $this->client->getPullRequests(
             $this->getUsername(),
@@ -464,23 +287,13 @@ class BitbucketAdapter extends BaseAdapter
         );
 
         $resultArray = json_decode($response->getContent(), true);
-        $returnArray = [];
+        $prs = [];
 
-        foreach ($resultArray['values'] as $result) {
-            $returnArray[] = [
-                'number'      => $result['id'],
-                'title'       => $result['title'],
-                'state'       => $result['state'],
-                'created_at'  => $result['created_on'],
-                'head'        => [
-                    'user' => [
-                        'login' => $result['author']['username'],
-                    ],
-                ],
-            ];
+        foreach ($resultArray['values'] as $pr) {
+            $prs[] = $this->adaptPullRequestStructure($pr);
         }
 
-        return $returnArray;
+        return $prs;
     }
 
     /**
@@ -500,6 +313,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createRelease($name, array $parameters = [])
     {
+        // BitBucket doesn't support this yet
         throw new \Exception("Pending implementation");
     }
 
@@ -508,7 +322,31 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function getReleases()
     {
-        throw new \Exception("Pending implementation");
+        $response = $this->client->getReleases(
+            $this->getUsername(),
+            $this->getRepository()
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $releases = [];
+
+        foreach ($resultArray as $name => $release) {
+            $releases[] = [
+                'url' => sprintf('https://%s/%s/%s/commits/tag/%s', $this->domain, $this->getUsername(), $this->getRepository(), $name),
+                'id' => null,
+                'name' => $name,
+                'tag_name' => $name,
+                'body' => $release['message'],
+                'draft' => false,
+                'prerelease' => !Parser::toVersion($name)->isStable(),
+                'created_at' => new \DateTime($release['utctimestamp']),
+                'updated_at' => null,
+                'published_at' => new \DateTime($release['utctimestamp']),
+                'user' => $release['author'],
+            ];
+        }
+
+        return $releases;
     }
 
     /**
@@ -516,6 +354,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function removeRelease($id)
     {
+        // BitBucket doesn't support this yet
         throw new \Exception("Pending implementation");
     }
 
@@ -524,76 +363,40 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createReleaseAssets($id, $name, $contentType, $content)
     {
-        throw new \Exception("Pending implementation");
+        throw new \Exception('BitBucket doesn\'t support release assets.');
     }
 
-    private function adapt($api, $array)
+    protected function adaptPullRequestStructure(array $pr)
     {
-        $result = [];
+        list($sourceOrg, $sourceBranch)=explode(':', $pr['source']['repository']['full_name'], 2);
 
-        if ( $api == 'getIssues' ) {
-
-            foreach ($array as $item ) {
-                $adaptedArray = [];
-                $resourceParts = explode('/', strrev($item['resource_uri']), 2);
-                $adaptedArray['number'] = $resourceParts[0];
-                $adaptedArray['state'] = $item['status'];
-                $adaptedArray['title'] = $item['title'];
-                $adaptedArray['user'] = [];
-                $adaptedArray['user']['login'] = $item['reported_by']['username'];
-                $adaptedArray['assignee'] = [];
-                $adaptedArray['assignee']['login'] = (isset($item['responsible']))
-                    ? $item['responsible']['username']
-                    : '';
-                $adaptedArray['milestone'] = [];
-                $adaptedArray['milestone']['title'] =
-                    (isset($item['metadata']['milestone']) && !is_null($item['metadata']['milestone']))
-                        ? $item['metadata']['milestone']
-                        : ''
-                ;
-                $adaptedArray['labels'] = [];
-                $adaptedArray['labels'][]= ['name' => $item['metadata']['kind']];
-                $adaptedArray['labels'][] =['name' => $item['priority']];
-                $adaptedArray['created_at'] = $item['utc_created_on'];
-
-                $result[] = $adaptedArray;
-            }
-        } else if ($api == 'getIssue') {
-
-            $result['number'] = $array['local_id'];
-            $result['state'] = $array['status'];
-            $result['user'] = [];
-            $result['user']['login'] = $array['reported_by']['username'];
-            $result['assignee'] = [];
-            $result['assignee']['login'] = (isset($array['responsible']))
-                ? $array['responsible']['username']
-                : '';
-            $result['title'] = $array['title'];
-            $result['body'] = $array['content'];
-            $result['milestone'] = [];
-            $result['milestone']['title'] =
-                (isset($array['metadata']['milestone']) && !is_null($array['metadata']['milestone']))
-                    ? $array['metadata']['milestone']
-                    : ''
-            ;
-            $result['labels'] = [];
-            $result['labels'][]= ['name' => $array['metadata']['kind']];
-            $result['labels'][] =['name' => $array['priority']];
-        } else if ($api == 'getPullRequest') {
-
-            $result['base']['label'] = $array['destination']['repository']['name']; // FIXME
-            $result['title'] = $array['title'];
-            $result['body'] = $array['description'];
-        } else if ($api == 'getPullRequestCommits') {
-
-            foreach ($array['values'] as $commitItem ) { // FIXME
-                $commit['sha'] = $commitItem['hash'];
-                $commit['commit']['message'] = $commitItem['message'];
-                $commit['author']['login'] = $commitItem['author']['user']['username'];
-                $result[] = $commit;
-            }
-        }
-
-        return $result;
+        return [
+            'url' => $pr['links']['html'],
+            'number' => $pr['id'],
+            'state' => $pr['state'],
+            'title' => $pr['title'],
+            'body' => $pr['description'],
+            'labels' => [], // unsupported
+            'milestone' => null, // unsupported
+            'created_at' => new \DateTime($pr['created_on']),
+            'updated_at' => !empty($pr['updated_on']) ? new \DateTime($pr['updated_on']) : null,
+            'user' => $pr['author']['username'],
+            'assignee' => null, // unsupported, only multiple
+            'merge_commit' => $pr['updated_on'],
+            'merged' => 'merged' === strtolower($pr['state']) && isset($pr['closed_by']),
+            'merged_by' => isset($pr['closed_by']) ? $pr['closed_by'] : '',
+            'head' => [
+                'ref' => $sourceBranch,
+                'sha' => $pr['source']['commit']['hash'],
+                'user' => $sourceOrg,
+                'repo' => $sourceBranch,
+            ],
+            'base' => [
+              'ref' => $pr['base']['ref'],
+              'label' => $pr['base']['label'],
+              'sha' => $pr['base']['sha'],
+              'repo' => $pr['base']['repo']['name'],
+            ],
+        ];
     }
 }
