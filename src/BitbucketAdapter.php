@@ -143,26 +143,31 @@ class BitbucketAdapter extends BaseAdapter
     {
         list($sourceOrg, $sourceBranch)=explode(':', $head, 2);
 
+        $params = [
+            'title' => $subject,
+            'description' => $body,
+            'source' => [
+                'branch' => [
+                    'name' => $sourceBranch,
+                ],
+            ],
+            'destination' => [
+                'branch' => [
+                    'name' => $base,
+                ],
+            ],
+        ];
+
+        if (null !== $this->getUsername() && $sourceOrg !== $this->getUsername()) {
+            $params['source']['repository'] = [
+                'full_name' => $sourceOrg.'/'.$this->getRepository(),
+            ];
+        }
+
         $response = $this->client->createPullRequest(
             $this->getUsername(),
             $this->getRepository(),
-            [
-                'title' => $subject,
-                'description' => $body,
-                'source' => [
-                    'branch' => [
-                        'name' => $sourceBranch,
-                    ],
-                    'repository' => [
-                        'full_name' => $sourceOrg.'/'.$sourceBranch,
-                    ],
-                ],
-                'destination' => [
-                    'branch' => [
-                        'name' => $base,
-                    ],
-                ],
-            ]
+            $params
         );
 
         $resultArray = json_decode($response->getContent(), true);
@@ -236,7 +241,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function mergePullRequest($id, $message)
     {
-        $response = $this->client->mergePullRequests(
+        $response = $this->client->mergePullRequest(
             $this->getUsername(),
             $this->getRepository(),
             $id,
@@ -368,10 +373,10 @@ class BitbucketAdapter extends BaseAdapter
 
     protected function adaptPullRequestStructure(array $pr)
     {
-        list($sourceOrg, $sourceBranch)=explode(':', $pr['source']['repository']['full_name'], 2);
+        list($sourceOrg,)=explode('/', $pr['source']['repository']['full_name'], 2);
 
         return [
-            'url' => $pr['links']['html'],
+            'url' => $pr['links']['html']['href'],
             'number' => $pr['id'],
             'state' => $pr['state'],
             'title' => $pr['title'],
@@ -382,20 +387,20 @@ class BitbucketAdapter extends BaseAdapter
             'updated_at' => !empty($pr['updated_on']) ? new \DateTime($pr['updated_on']) : null,
             'user' => $pr['author']['username'],
             'assignee' => null, // unsupported, only multiple
-            'merge_commit' => $pr['updated_on'],
+            'merge_commit' => $pr['merge_commit'],
             'merged' => 'merged' === strtolower($pr['state']) && isset($pr['closed_by']),
             'merged_by' => isset($pr['closed_by']) ? $pr['closed_by'] : '',
             'head' => [
-                'ref' => $sourceBranch,
+                'ref' => $pr['source']['branch']['name'],
                 'sha' => $pr['source']['commit']['hash'],
                 'user' => $sourceOrg,
-                'repo' => $sourceBranch,
+                'repo' => $pr['source']['branch']['name'],
             ],
             'base' => [
-              'ref' => $pr['base']['ref'],
-              'label' => $pr['base']['label'],
-              'sha' => $pr['base']['sha'],
-              'repo' => $pr['base']['repo']['name'],
+              'ref' => $pr['destination']['branch']['name'],
+              'label' => $pr['destination']['branch']['name'],
+              'sha' => $pr['destination']['commit']['hash'],
+              'repo' => $pr['destination']['repository']['name'],
             ],
         ];
     }
