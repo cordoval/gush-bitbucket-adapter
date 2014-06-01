@@ -16,9 +16,11 @@ use Bitbucket\API\Authentication\OAuth;
 use Bitbucket\API\Http\Listener\OAuthListener;
 use Bitbucket\API\Http\Listener\BasicAuthListener;
 use Bitbucket\API\User;
+use Gush\Adapter\Listener\ErrorListener;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
+ * @author Sebastiaan Stok <s.stok@rollerscapes.net>
  */
 abstract class BitbucketClient
 {
@@ -66,6 +68,7 @@ abstract class BitbucketClient
         $api->setCredentials($this->getCredentials());
         $auth = $this->getAuth();
         $this->addAuthListener($auth, $api);
+        $api->getClient()->addListener(new ErrorListener());
 
         return $api;
     }
@@ -75,6 +78,10 @@ abstract class BitbucketClient
         return (isset($this->credentials['secret'])) ? self::AUTH_HTTP_TOKEN : self::AUTH_HTTP_PASSWORD;
     }
 
+    /**
+     * @param string             $auth
+     * @param \Bitbucket\API\Api $api
+     */
     protected function addAuthListener($auth, $api)
     {
         if ($auth == self::AUTH_HTTP_PASSWORD) {
