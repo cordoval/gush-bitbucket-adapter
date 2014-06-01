@@ -12,6 +12,7 @@
 namespace Gush\Adapter;
 
 use Gush\Adapter\Client\BitbucketIssueTrackerClient;
+use Gush\Util\ArrayUtil;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
@@ -46,7 +47,13 @@ class BitbucketIssueTracker extends BaseIssueTracker
         $response = $this->client->openIssue(
             $this->getUsername(),
             $this->getRepository(),
-            array_merge($options, ['title' => $subject, 'content' => $body])
+            array_merge(
+                $options,
+                [
+                    'title' => $subject,
+                    'content' => $body
+                ]
+            )
         );
 
         $resultArray = json_decode($response->getContent(), true);
@@ -196,60 +203,10 @@ class BitbucketIssueTracker extends BaseIssueTracker
 
         $resultArray = json_decode($response->getContent(), true);
 
-        $milestones = array_map(function($milestone) {
-            return ['title' => $milestone['name'], 'number' => $milestone['id']];
-        }, $resultArray);
-
-        return $milestones;
-    }
-
-    private function adapt($api, $array)
-    {
-        $result = [];
-
-        if ( $api == 'getIssues' ) {
-
-            foreach ($array as $item ) {
-                $adaptedArray = [];
-                $resourceParts = explode('/', strrev($item['resource_uri']), 2);
-                $adaptedArray['number'] = $resourceParts[0];
-                $adaptedArray['state'] = $item['status'];
-                $adaptedArray['title'] = $item['title'];
-                $adaptedArray['user'] = [];
-                $adaptedArray['user']['login'] = $item['reported_by']['username'];
-                $adaptedArray['assignee'] = [];
-                $adaptedArray['assignee']['login'] = (isset($item['responsible']))
-                    ? $item['responsible']['username']
-                    : '';
-                $adaptedArray['milestone'] = [];
-                $adaptedArray['milestone']['title'] =
-                    (isset($item['metadata']['milestone']) && !is_null($item['metadata']['milestone']))
-                        ? $item['metadata']['milestone']
-                        : ''
-                ;
-                $adaptedArray['labels'] = [];
-                $adaptedArray['labels'][]= ['name' => $item['metadata']['kind']];
-                $adaptedArray['labels'][] =['name' => $item['priority']];
-                $adaptedArray['created_at'] = $item['utc_created_on'];
-
-                $result[] = $adaptedArray;
-            }
-        } else if ($api == 'getPullRequest') {
-
-            $result['base']['label'] = $array['destination']['repository']['name']; // FIXME
-            $result['title'] = $array['title'];
-            $result['body'] = $array['description'];
-        } else if ($api == 'getPullRequestCommits') {
-
-            foreach ($array['values'] as $commitItem ) { // FIXME
-                $commit['sha'] = $commitItem['hash'];
-                $commit['commit']['message'] = $commitItem['message'];
-                $commit['author']['login'] = $commitItem['author']['user']['username'];
-                $result[] = $commit;
-            }
-        }
-
-        return $result;
+        return ArrayUtil::getValuesFromNestedArray(
+            $resultArray,
+            'name'
+        );
     }
 
     protected function adaptIssueStructure(array $issue)

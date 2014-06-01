@@ -15,6 +15,7 @@ use Bitbucket\API\User;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
+ * @author Sebastiaan Stok <s.stok@rollerscapes.net>
  */
 class BitbucketRepositoryClient extends BitbucketClient
 {
@@ -22,70 +23,111 @@ class BitbucketRepositoryClient extends BitbucketClient
     {
         $api = $this->api('Bitbucket\API\Repositories\Repository');
 
-        return $api->fork($username, $repository, $org, []);
+        return $api->fork(
+            $username,
+            $repository,
+            $org
+        );
     }
 
     public function getPullRequests($username, $repository, array $params = [])
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->all($username, $repository, $params);
+        return $api->all(
+            $username,
+            $repository,
+            $this->prepareParameters($params)
+        );
     }
 
     public function getPullRequest($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->get($username, $repository, $id);
+        return $api->get(
+            $username,
+            $repository,
+            $id
+        );
     }
 
     public function getPullRequestCommits($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->commits($username, $repository, $id);
+        return $api->commits(
+            $username,
+            $repository,
+            $id
+        );
     }
 
     public function createPullRequest($username, $repository, $params = [])
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->create($username, $repository, $params);
+        return $api->create(
+            $username,
+            $repository,
+            $this->prepareParameters($params)
+        );
     }
 
-    public function mergePullRequests($username, $repository, $id, array $params = [])
+    public function mergePullRequest($username, $repository, $id, array $params = [])
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->accept($username, $repository, $id, $params);
+        return $api->accept(
+            $username,
+            $repository,
+            $id,
+            $this->prepareParameters($params)
+        );
     }
 
     public function createComment($username, $repository, $id, $message)
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests\Comments');
 
-        return $api->create($username, $repository, $id, $message);
+        return $api->create(
+            $username,
+            $repository,
+            $id,
+            $message
+        );
     }
 
     public function getComments($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests\Comments');
 
-        return $api->all($username, $repository, $id);
+        return $api->all(
+            $username,
+            $repository,
+            $id
+        );
     }
 
     public function closePullRequest($username, $repository, $id)
     {
         $api = $this->api('Bitbucket\API\Repositories\PullRequests');
 
-        return $api->decline($username, $repository, $id);
+        return $api->decline(
+            $username,
+            $repository,
+            $id
+        );
     }
 
     public function getReleases($username, $repository)
     {
         $api = $this->api('Bitbucket\API\Repositories\Repository');
 
-        return $api->tags($username, $repository);
+        return $api->tags(
+            $username,
+            $repository
+        );
     }
 
     public function getMilestones()
