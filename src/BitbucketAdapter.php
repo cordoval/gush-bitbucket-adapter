@@ -14,6 +14,7 @@ namespace Gush\Adapter;
 use Gush\Adapter\Client\BitbucketRepositoryClient;
 use Gush\Exception\AdapterException;
 use Herrera\Version\Parser;
+use Herrera\Version\Validator as VersionValidator;
 
 /**
  * @author Raul Rodriguez <raulrodriguez782@gmail.com>
@@ -106,7 +107,7 @@ class BitbucketAdapter extends BaseAdapter
 
         $comments = [];
 
-        foreach ($fetchedComments as $comment) {
+        foreach ($fetchedComments['values'] as $comment) {
             $comments[] = [
                 'id' => $comment['id'],
                 'url' => $comment['links']['html'],
@@ -229,7 +230,7 @@ class BitbucketAdapter extends BaseAdapter
             $commits[] = [
                 'sha' => $commit['hash'],
                 'user' => $commit['author']['user']['username'],
-                'message' => $commit['message'],
+                'message' => trim($commit['message']),
             ];
         }
 
@@ -253,7 +254,7 @@ class BitbucketAdapter extends BaseAdapter
             throw new AdapterException($response->getContent());
         }
 
-        return $resultArray['merge_commit']['hash'];
+        return $resultArray['merge_commit'];
     }
 
     /**
@@ -336,6 +337,8 @@ class BitbucketAdapter extends BaseAdapter
         $releases = [];
 
         foreach ($resultArray as $name => $release) {
+            $version = ltrim($name, 'v');
+
             $releases[] = [
                 'url' => sprintf('https://%s/%s/%s/commits/tag/%s', $this->domain, $this->getUsername(), $this->getRepository(), $name),
                 'id' => null,
@@ -343,7 +346,7 @@ class BitbucketAdapter extends BaseAdapter
                 'tag_name' => $name,
                 'body' => $release['message'],
                 'draft' => false,
-                'prerelease' => !Parser::toVersion($name)->isStable(),
+                'prerelease' => VersionValidator::isVersion($version) && !Parser::toVersion($version)->isStable(),
                 'created_at' => new \DateTime($release['utctimestamp']),
                 'updated_at' => null,
                 'published_at' => new \DateTime($release['utctimestamp']),
