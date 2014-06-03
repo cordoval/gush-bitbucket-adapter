@@ -174,7 +174,7 @@ class BitbucketAdapter extends BaseAdapter
         $resultArray = json_decode($response->getContent(), true);
 
         return [
-            'html_url' => $response->getHeader('Location'),
+            'html_url' => $resultArray['links']['html']['href'],
             'number' => $resultArray['id']
         ];
     }
@@ -254,7 +254,7 @@ class BitbucketAdapter extends BaseAdapter
             throw new AdapterException($response->getContent());
         }
 
-        return $resultArray['merge_commit'];
+        return $resultArray['merge_commit']['hash'];
     }
 
     /**
@@ -319,7 +319,7 @@ class BitbucketAdapter extends BaseAdapter
      */
     public function createRelease($name, array $parameters = [])
     {
-        // BitBucket doesn't support this yet
+        // BitBucket doesn't support this yet, use the CommandHelper for executing a `git tag` operation
         throw new \Exception("Pending implementation");
     }
 
@@ -376,7 +376,7 @@ class BitbucketAdapter extends BaseAdapter
 
     protected function adaptPullRequestStructure(array $pr)
     {
-        list($sourceOrg,)=explode('/', $pr['source']['repository']['full_name'], 2);
+        list($sourceOrg,) = explode('/', $pr['source']['repository']['full_name'], 2);
 
         return [
             'url' => $pr['links']['html']['href'],

@@ -122,6 +122,10 @@ class BitbucketIssueTracker extends BaseIssueTracker
             unset($parameters['assignee']);
         }
 
+        //if (isset('labels'))
+
+
+
         $this->client->updateIssue(
             $this->getUsername(),
             $this->getRepository(),
