@@ -123,22 +123,23 @@ class BitbucketIssueTracker extends BaseIssueTracker
 
         $newParameters = [
             'responsible' => $resultArray['responsible']['username'],
+            'priority' => $resultArray['priority'],
+            'kind' => $resultArray['metadata']['kind'],
+            'version' => $resultArray['metadata']['version'],
+            'component' => $resultArray['metadata']['component'],
         ];
 
         if(isset($parameters['assignee'])) {
             $newParameters['responsible'] = $parameters['assignee'];
         }
 
-        if (isset($parameters['labels'])) {
-            $resultArray = json_decode($response->getContent(), true);
+        if(isset($parameters['status'])) {
+            $newParameters['status'] = $parameters['status'];
+        }
 
+        if (isset($parameters['labels'])) {
             $validVersions = $this->getSupportedVersions();
             $validComponents = $this->getSupportedComponents();
-
-            $newParameters['priority'] = $resultArray['priority'];
-            $newParameters['kind'] = $resultArray['metadata']['kind'];
-            $newParameters['version'] = $resultArray['metadata']['version'];
-            $newParameters['component'] = $resultArray['metadata']['component'];
 
             foreach ($parameters['labels'] as $label) {
                 if (in_array($label, static::$validPriorities)) {
