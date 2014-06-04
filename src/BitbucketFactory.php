@@ -19,9 +19,14 @@ use Symfony\Component\Console\Helper\HelperSet;
  */
 class BitbucketFactory
 {
-    public static function createAdapter($adapterConfig, Config $config)
+    /**
+     * @var BitBucketClient|null
+     */
+    protected static $client;
+
+    public static function createAdapter(array $adapterConfig)
     {
-        return new BitbucketAdapter($adapterConfig, $config);
+        return new BitbucketRepoAdapter($adapterConfig, static::getBitBucketClient($adapterConfig));
     }
 
     public static function createAdapterConfigurator(HelperSet $helperSet)
@@ -36,20 +41,27 @@ class BitbucketFactory
         return $configurator;
     }
 
-    public static function createIssueTracker($adapterConfig, Config $config)
+    public static function createIssueTracker(array $adapterConfig)
     {
-        return new BitbucketIssueTracker($adapterConfig, $config);
+        return new BitbucketIssueTracker($adapterConfig, static::getBitBucketClient($adapterConfig));
     }
 
     public static function createIssueTrackerConfigurator(HelperSet $helperSet)
     {
-        $configurator = new BitBucketConfigurator(
-            $helperSet->get('dialog'),
-            'Bitbucket issue tracker',
-            'https://api.bitbucket.org',
-            'https://bitbucket.org'
-        );
+        return static::createAdapterConfigurator($helperSet);
+    }
 
-        return $configurator;
+    /**
+     * @param array $options
+     *
+     * @return BitBucketClient
+     */
+    protected static function getBitBucketClient(array $options = [])
+    {
+        if (null === static::$client || static::$client->getOptions() !== $options) {
+            static::$client = new BitBucketClient($options);
+        }
+
+        return static::$client;
     }
 }

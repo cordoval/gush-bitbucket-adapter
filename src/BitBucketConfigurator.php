@@ -29,7 +29,7 @@ class BitBucketConfigurator extends DefaultConfigurator
      *
      * @param DialogHelper $dialog  DialogHelper instance
      * @param string       $label   Label of the Configurator (eg. BitBucket or BitBucket IssueTracker)
-     * @param string       $apiUrl  Default URL to API service (eg. 'https://api.bitbucket.org/')
+     * @param string       $apiUrl  Default URL to API service (eg. 'https://api.bitbucket.org')
      * @param string       $repoUrl Default URL to repository (eg. 'https://bitbucket.org')
      */
     public function __construct(DialogHelper $dialog, $label, $apiUrl, $repoUrl)
@@ -40,8 +40,8 @@ class BitBucketConfigurator extends DefaultConfigurator
         $this->repoUrl = $repoUrl;
 
         $authenticationOptions = [
-            0 => ['Password', 'Password', self::AUTH_HTTP_PASSWORD],
-            1 => ['OAuth', 'Key', self::AUTH_HTTP_TOKEN]
+            0 => ['Password', self::AUTH_HTTP_PASSWORD],
+            1 => ['OAuth', self::AUTH_HTTP_TOKEN]
         ];
 
         $this->authenticationOptions = $authenticationOptions;
@@ -69,7 +69,7 @@ class BitBucketConfigurator extends DefaultConfigurator
         );
 
         $config['authentication'] = [];
-        $config['authentication']['http-auth-type'] = $this->authenticationOptions[$authenticationType][2];
+        $config['authentication']['http-auth-type'] = $this->authenticationOptions[$authenticationType][1];
 
         $config['authentication']['username'] = $this->dialog->askAndValidate(
             $output,
@@ -77,23 +77,29 @@ class BitBucketConfigurator extends DefaultConfigurator
             [$this, 'validateNoneEmpty']
         );
 
-        $config['authentication']['password-or-token'] = $this->dialog->askHiddenResponseAndValidate(
-            $output,
-            $this->authenticationOptions[$authenticationType][1].': ',
-            [$this, 'validateNoneEmpty']
-        );
-
         if (static::AUTH_HTTP_TOKEN === $config['authentication']['http-auth-type']) {
+            $config['authentication']['key'] = $this->dialog->askAndValidate(
+                $output,
+                'Key: ',
+                [$this, 'validateNoneEmpty']
+            );
+
             $config['authentication']['secret'] = $this->dialog->askHiddenResponseAndValidate(
                 $output,
                 'Secret: ',
                 [$this, 'validateNoneEmpty']
             );
+        } else {
+            $config['authentication']['password'] = $this->dialog->askHiddenResponseAndValidate(
+                $output,
+                'Password: ',
+                [$this, 'validateNoneEmpty']
+            );
         }
 
         // Not really configurable at the moment, so hard-configured
-        $config['base_url'] = $this->apiUrl;
-        $config['repo_domain_url'] = $this->repoUrl;
+        $config['base_url'] = rtrim($this->apiUrl, '/');
+        $config['repo_domain_url'] = rtrim($this->repoUrl, '/');
 
         return $config;
     }

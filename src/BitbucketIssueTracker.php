@@ -20,31 +20,14 @@ use Gush\Util\ArrayUtil;
  */
 class BitbucketIssueTracker extends BaseIssueTracker
 {
-    use BitbucketTrait;
-
-    /**
-     * @var BitbucketIssueTrackerClient
-     */
-    protected $client;
-
-    /**
-     * @return BitbucketIssueTrackerClient
-     */
-    protected function buildBitbucketClient()
-    {
-        $client = new BitbucketIssueTrackerClient($this->config);
-        $this->url = rtrim($this->config['base_url'], '/');
-        $this->domain = rtrim($this->config['repo_domain_url'], '/');
-
-        return $client;
-    }
+    use BitbucketAdapter;
 
     /**
      * {@inheritdoc}
      */
     public function openIssue($subject, $body, array $options = [])
     {
-        $response = $this->client->openIssue(
+        $response = $this->client->apiIssues()->create(
             $this->getUsername(),
             $this->getRepository(),
             array_merge(
@@ -66,7 +49,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getIssue($id)
     {
-        $response = $this->client->getIssue(
+        $response = $this->client->apiIssues()->get(
             $this->getUsername(),
             $this->getRepository(),
             $id
@@ -93,10 +76,10 @@ class BitbucketIssueTracker extends BaseIssueTracker
     {
         // FIXME is not respecting the pagination
 
-        $response = $this->client->getIssues(
+        $response = $this->client->apiIssues()->all(
             $this->getUsername(),
             $this->getRepository(),
-            $parameters
+            $this->prepareParameters($parameters)
         );
 
         $resultArray = json_decode($response->getContent(), true);
@@ -126,11 +109,11 @@ class BitbucketIssueTracker extends BaseIssueTracker
 
 
 
-        $this->client->updateIssue(
+        $this->client->apiIssues()->update(
             $this->getUsername(),
             $this->getRepository(),
             $id,
-            $parameters
+            $this->prepareParameters($parameters)
         );
     }
 
@@ -139,7 +122,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function closeIssue($id)
     {
-        $this->client->updateIssue(
+        $this->client->apiIssues()->update(
             $this->getUsername(),
             $this->getRepository(),
             $id,
@@ -152,7 +135,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function createComment($id, $message)
     {
-        $response = $this->client->createIssueComment(
+        $response = $this->client->apiIssues()->comments()->create(
             $this->getUsername(),
             $this->getRepository(),
             $id,
@@ -169,7 +152,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getComments($id)
     {
-        $response = $this->client->getComments(
+        $response = $this->client->apiIssues()->all(
             $this->getUsername(),
             $this->getRepository(),
             $id
@@ -177,12 +160,25 @@ class BitbucketIssueTracker extends BaseIssueTracker
 
         $resultArray = json_decode($response->getContent(), true);
 
-        $comments = array_map(function($commentRow){
-            $comment = [];
-            $comment['user'] = ['login' => $commentRow['author_info']['username']];
-            $comment['body'] = $commentRow['content'];
-            $comment['created_at'] = $commentRow['utc_created_on'];
-        }, $resultArray);
+        $comments = [];
+
+        foreach ($resultArray as $comment) {
+            $comments[] = [
+                'id' => $comment['comment_id'],
+                'url' => sprintf(
+                    '%s/%s/%s/issue/%d/#comment-%d',
+                    $this->domain,
+                    $this->username,
+                    $this->getRepository(),
+                    $id,
+                    $comment['comment_id']
+                ),
+                'user' => ['login' => $comment['author_info']['username']],
+                'body' => $comment['content'],
+                'created_at' => new \DateTime($comment['utc_created_on']),
+                'updated_at' => !empty($comment['utc_updated_on']) ? new \DateTime($comment['utc_updated_on']) : null,
+            ];
+        }
 
         return $comments;
     }
@@ -192,6 +188,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getLabels()
     {
+        // use types and components for providing available labels
         throw new \Exception("Pending implementation");
     }
 
@@ -200,7 +197,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getMilestones(array $parameters = [])
     {
-        $response = $this->client->getMilestones(
+        $response = $this->client->apiIssues()->milestones()->all(
             $this->getUsername(),
             $this->getRepository()
         );

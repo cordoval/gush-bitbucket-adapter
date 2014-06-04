@@ -18,6 +18,18 @@ use Gush\Exception\AdapterException;
 
 class ErrorListener implements ListenerInterface
 {
+    private $disabled = false;
+
+    public function disableListener($permanent = false)
+    {
+        $this->disabled = $permanent ? true : 1;
+    }
+
+    public function enableListener()
+    {
+        $this->disabled = false;
+    }
+
     public function preSend(RequestInterface $request)
     {
         // noop
@@ -25,6 +37,14 @@ class ErrorListener implements ListenerInterface
 
     public function postSend(RequestInterface $request, MessageInterface $response)
     {
+        if ($this->disabled) {
+            if (1 === $this->disabled) {
+                $this->disabled = false;
+            }
+
+            return;
+        }
+
         if (!$response->isSuccessful()) {
             $resultArray = json_decode($response->getContent(), true);
 
