@@ -22,6 +22,21 @@ class BitbucketIssueTracker extends BaseIssueTracker
 {
     use BitbucketAdapter;
 
+    static protected $validPriorities = [
+        'trivial',
+        'minor',
+        'major',
+        'critical',
+        'blocker'
+    ];
+
+    static protected $validKinds = [
+        'bug',
+        'enhancement',
+        'proposal',
+        'task'
+    ];
+
     /**
      * {@inheritdoc}
      */
@@ -98,22 +113,53 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function updateIssue($id, array $parameters)
     {
-        if(isset($parameters['assignee'])) {
-            $username = $parameters['assignee'];
-            $parameters['responsible'] = $username;
+        $response = $this->client->apiIssues()->get(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
 
-            unset($parameters['assignee']);
+        $resultArray = json_decode($response->getContent(), true);
+
+        $newParameters = [
+            'responsible' => $resultArray['responsible']['username'],
+        ];
+
+        if(isset($parameters['assignee'])) {
+            $newParameters['responsible'] = $parameters['assignee'];
         }
 
-        //if (isset('labels'))
+        if (isset($parameters['labels'])) {
+            $resultArray = json_decode($response->getContent(), true);
 
+            $validVersions = $this->getSupportedVersions();
+            $validComponents = $this->getSupportedComponents();
 
+            $newParameters['priority'] = $resultArray['priority'];
+            $newParameters['kind'] = $resultArray['metadata']['kind'];
+            $newParameters['version'] = $resultArray['metadata']['version'];
+            $newParameters['component'] = $resultArray['metadata']['component'];
+
+            foreach ($parameters['labels'] as $label) {
+                if (in_array($label, static::$validPriorities)) {
+                    $newParameters['priority'] = $label;
+                } elseif (in_array($label, static::$validKinds)) {
+                    $newParameters['kind'] = $label;
+                } elseif (in_array($label, $validVersions)) {
+                    $newParameters['version'] = $label;
+                } elseif (in_array($label, $validComponents)) {
+                    $newParameters['component'] = $label;
+                } else {
+                    throw new \InvalidArgumentException(sprintf('Label "%s" for issues is not supported.', $label));
+                }
+            }
+        }
 
         $this->client->apiIssues()->update(
             $this->getUsername(),
             $this->getRepository(),
             $id,
-            $this->prepareParameters($parameters)
+            $this->prepareParameters($newParameters)
         );
     }
 
@@ -188,8 +234,13 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getLabels()
     {
-        // use types and components for providing available labels
-        throw new \Exception("Pending implementation");
+        return array_merge(
+            [],
+            static::$validKinds,
+            static::$validPriorities,
+            $this->getSupportedVersions(),
+            $this->getSupportedComponents()
+        );
     }
 
     /**
@@ -208,6 +259,49 @@ class BitbucketIssueTracker extends BaseIssueTracker
             $resultArray,
             'name'
         );
+    }
+
+    protected function getSupportedComponents()
+    {
+        $response = $this->client->apiIssues()->components()->all(
+            $this->getUsername(),
+            $this->getRepository()
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $components = [];
+
+        foreach ($resultArray as $comment) {
+            $components[] = $comment['name'];
+        }
+
+        return $components;
+    }
+
+    protected function getSupportedVersions()
+    {
+        $response = $this->client->apiIssues()->versions()->all(
+            $this->getUsername(),
+            $this->getRepository()
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+        $versions = [];
+
+        foreach ($resultArray as $version) {
+            $versions[] = $version['name'];
+        }
+
+        return $versions;
+    }
+
+    protected function getValueWhenSupported(array $supportedValues, $value, $currentValue)
+    {
+        if (in_array($value, $supportedValues)) {
+            return $value;
+        }
+
+        return $currentValue;
     }
 
     protected function adaptIssueStructure(array $issue)
