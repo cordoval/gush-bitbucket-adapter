@@ -11,7 +11,6 @@
 
 namespace Gush\Adapter;
 
-use Gush\Config;
 use Symfony\Component\Console\Helper\HelperSet;
 
 /**

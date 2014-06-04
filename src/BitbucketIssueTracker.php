@@ -11,7 +11,6 @@
 
 namespace Gush\Adapter;
 
-use Gush\Adapter\Client\BitbucketIssueTrackerClient;
 use Gush\Util\ArrayUtil;
 
 /**
@@ -22,7 +21,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
 {
     use BitbucketAdapter;
 
-    static protected $validPriorities = [
+    protected static $validPriorities = [
         'trivial',
         'minor',
         'major',
@@ -30,7 +29,7 @@ class BitbucketIssueTracker extends BaseIssueTracker
         'blocker'
     ];
 
-    static protected $validKinds = [
+    protected static $validKinds = [
         'bug',
         'enhancement',
         'proposal',
@@ -129,11 +128,11 @@ class BitbucketIssueTracker extends BaseIssueTracker
             'component' => $resultArray['metadata']['component'],
         ];
 
-        if(isset($parameters['assignee'])) {
+        if (isset($parameters['assignee'])) {
             $newParameters['responsible'] = $parameters['assignee'];
         }
 
-        if(isset($parameters['status'])) {
+        if (isset($parameters['status'])) {
             $newParameters['status'] = $parameters['status'];
         }
 
@@ -294,15 +293,6 @@ class BitbucketIssueTracker extends BaseIssueTracker
         }
 
         return $versions;
-    }
-
-    protected function getValueWhenSupported(array $supportedValues, $value, $currentValue)
-    {
-        if (in_array($value, $supportedValues)) {
-            return $value;
-        }
-
-        return $currentValue;
     }
 
     protected function adaptIssueStructure(array $issue)

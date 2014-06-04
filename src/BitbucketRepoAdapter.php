@@ -39,16 +39,16 @@ class BitbucketRepoAdapter extends BaseAdapter
         $response = $this->client->apiRepository()->get(
             $this->getUsername(),
             $this->getRepository()
-        )->getContent();
+        );
 
-        $resultArray = json_decode($response, true);
+        $resultArray = json_decode($response->getContent(), true);
 
         if ('no_forks' === $resultArray['fork_policy']) {
             throw new AdapterException('Forking is not allowed for this repository.');
         }
 
         if ('git' !== $resultArray['scm']) {
-            throw new AdapterException('Repository type is not git, only git supported.');
+            throw new AdapterException('Repository type is not git, only git is supported.');
         }
 
         if ($this->getUsername() === $resultArray['owner']['username']) {
