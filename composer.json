@@ -18,19 +18,11 @@
     ],
     "require": {
         "gentle/bitbucket-api": "~0.4",
-        "gushphp/gush": "dev-temp-bitbucket-remove@dev"
+        "gushphp/gush": "*"
     },
     "autoload": {
         "psr-4": {
             "Gush\\Adapter\\": "src/"
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/sstok/gush.git"
-        }
-    ]
+    }
 }
