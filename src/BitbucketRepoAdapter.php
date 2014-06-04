@@ -271,8 +271,61 @@ class BitbucketRepoAdapter extends BaseAdapter
     public function updatePullRequest($id, array $parameters)
     {
         // BitBucket requires the existing values to be passed with it
-        // At the moment only PullRequestAssignCommand uses this method directly
-        throw new \Exception("Pending implementation");
+        $response = $this->client->apiPullRequests()->get(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id
+        );
+
+        $resultArray = json_decode($response->getContent(), true);
+
+        $reviewerNames = [];
+        $newParameters = [
+            'title' => $resultArray['title'],
+            'description' => $resultArray['description'],
+            'close_source_branch' => $resultArray['close_source_branch'],
+            'reviewers' => [],
+            'destination' => [
+                'branch' => [
+                    'name'  => $resultArray['destination']['branch']['name'],
+                ],
+            ],
+        ];
+
+        if (count($resultArray['reviewers']) > 0) {
+            $reviewers = [];
+            $reviewerNames = [];
+
+            foreach ($resultArray['reviewers'] as $reviewer) {
+                $reviewers[] = ['username' => $reviewer['username']];
+            }
+
+            $newParameters['reviewers'] = $reviewers;
+        }
+
+        // At the moment only PullRequestAssignCommand uses this method
+        // Future changes properly require a remapping method
+        if (isset($parameters['assignee'])) {
+            if ($parameters['assignee'] === $resultArray['author']['username']) {
+                throw new AdapterException(
+                    sprintf(
+                        '"%s" is the author and cannot be included as a reviewer.',
+                        $resultArray['author']['username']
+                    )
+                );
+            }
+
+            if (!in_array($parameters['assignee'], $reviewerNames)) {
+                $newParameters['reviewers'][] = ['username' => $parameters['assignee']];
+            }
+        }
+
+        $this->client->apiPullRequests()->update(
+            $this->getUsername(),
+            $this->getRepository(),
+            $id,
+            $newParameters
+        );
     }
 
     /**
