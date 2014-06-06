@@ -105,17 +105,20 @@ class BitbucketRepoAdapter extends BaseAdapter
      */
     public function getComments($id)
     {
+        $this->client->getResultPager()->setPerPage(null);
+        $this->client->getResultPager()->setPage(1);
+
         $response = $this->client->apiPullRequests()->comments()->all(
             $this->getUsername(),
             $this->getRepository(),
             $id
         );
 
-        $fetchedComments = json_decode($response->getContent(), true);
+        $resultArray = json_decode($response->getContent(), true);
 
         $comments = [];
 
-        foreach ($fetchedComments['values'] as $comment) {
+        foreach ($this->client->getResultPager()->fetch($resultArray) as $comment) {
             $comments[] = [
                 'id' => $comment['id'],
                 'url' => $comment['links']['html'],
@@ -125,6 +128,8 @@ class BitbucketRepoAdapter extends BaseAdapter
                 'updated_at' => !empty($comment['updated_on']) ? new \DateTime($comment['updated_on']) : null,
             ];
         }
+
+        $this->client->getResultPager()->setPage(null);
 
         return $comments;
     }
@@ -222,25 +227,28 @@ class BitbucketRepoAdapter extends BaseAdapter
      */
     public function getPullRequestCommits($id)
     {
+        $this->client->getResultPager()->setPerPage(null);
+        $this->client->getResultPager()->setPage(1);
+
         $response = $this->client->apiPullRequests()->commits(
             $this->getUsername(),
             $this->getRepository(),
             $id
         );
 
-        // FIXME this will not get all commits due to page-limiting
-
         $resultArray = json_decode($response->getContent(), true);
 
         $commits = [];
 
-        foreach ($resultArray['values'] as $commit) {
+        foreach ($this->client->getResultPager()->fetch($resultArray) as $commit) {
             $commits[] = [
                 'sha' => $commit['hash'],
                 'user' => $commit['author']['user']['username'],
                 'message' => trim($commit['message']),
             ];
         }
+
+        $this->client->getResultPager()->setPage(null);
 
         return $commits;
     }
@@ -345,20 +353,27 @@ class BitbucketRepoAdapter extends BaseAdapter
      */
     public function getPullRequests($state = null, $page = 1, $perPage = 30)
     {
+        $this->client->getResultPager()->setPerPage(null);
+        $this->client->getResultPager()->setPage(1);
+
         $response = $this->client->apiPullRequests()->all(
             $this->getUsername(),
             $this->getRepository(),
-            [
-                'state' => $state
-            ]
+            $this->prepareParameters(
+                 [
+                    'state' => $state
+                 ]
+            )
         );
 
         $resultArray = json_decode($response->getContent(), true);
         $prs = [];
 
-        foreach ($resultArray['values'] as $pr) {
+        foreach ($this->client->getResultPager()->fetch($resultArray) as $pr) {
             $prs[] = $this->adaptPullRequestStructure($pr);
         }
+
+        $this->client->getResultPager()->setPage(null);
 
         return $prs;
     }

@@ -13,11 +13,11 @@ namespace Gush\Adapter;
 
 use Bitbucket\API;
 use Bitbucket\API\Http\Client;
-use Bitbucket\API\Http\ClientInterface;
 use Bitbucket\API\Http\Listener\BasicAuthListener;
 use Bitbucket\API\Http\Listener\OAuthListener;
 use Bitbucket\API\User;
 use Gush\Adapter\Listener\ErrorListener;
+use Gush\Adapter\Listener\ResultPagerListener;
 
 /**
  * @author Sebastiaan Stok <s.stok@rollerscapes.net>
@@ -47,6 +47,16 @@ class BitBucketClient
     protected $errorListener;
 
     /**
+     * @var ResultPagerListener
+     */
+    protected $resultPagerListener;
+
+    /**
+     * @var ResultPager
+     */
+    protected $resultPager;
+
+    /**
      * @var array
      */
     protected $options;
@@ -55,14 +65,17 @@ class BitBucketClient
      * Constructor.
      *
      * @param array           $options
-     * @param ClientInterface $httpClient
+     * @param Client $httpClient
      */
-    public function __construct(array $options = [], ClientInterface $httpClient = null)
+    public function __construct(array $options = [], Client $httpClient = null)
     {
         $this->errorListener = new ErrorListener();
 
         $this->httpClient = $httpClient ?: new Client($options);
         $this->httpClient->addListener($this->errorListener);
+
+        $this->resultPagerListener = new ResultPagerListener($this->httpClient);
+        $this->httpClient->addListener($this->resultPagerListener);
         $this->options = $options;
     }
 
@@ -70,7 +83,6 @@ class BitBucketClient
     {
         $api = new API\Repositories\Repository();
         $this->httpClient->setApiVersion('1.0');
-
         $api->setClient($this->httpClient);
 
         return $api;
@@ -87,6 +99,7 @@ class BitBucketClient
     public function apiUser()
     {
         $api = new API\User();
+        $this->getResultPager()->setPage(null);
         $api->setClient($this->httpClient);
 
         return $api;
@@ -143,7 +156,7 @@ class BitBucketClient
     }
 
     /**
-     * @return ClientInterface
+     * @return Client
      */
     public function getHttpClient()
     {
@@ -151,11 +164,15 @@ class BitBucketClient
     }
 
     /**
-     * @param ClientInterface $httpClient
+     * @return ResultPager
      */
-    public function setHttpClient(ClientInterface $httpClient)
+    public function getResultPager()
     {
-        $this->httpClient = $httpClient;
+        if (null === $this->resultPager) {
+            $this->resultPager = new ResultPager($this, $this->resultPagerListener);
+        }
+
+        return $this->resultPager;
     }
 
     public function disableErrorListener($permanent = false)

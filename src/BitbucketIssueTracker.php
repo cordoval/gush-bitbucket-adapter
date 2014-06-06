@@ -88,7 +88,8 @@ class BitbucketIssueTracker extends BaseIssueTracker
      */
     public function getIssues(array $parameters = [], $page = 1, $perPage = 30)
     {
-        // FIXME is not respecting the pagination
+        $this->client->getResultPager()->setPerPage(null);
+        $this->client->getResultPager()->setPage(1);
 
         $response = $this->client->apiIssues()->all(
             $this->getUsername(),
@@ -100,9 +101,11 @@ class BitbucketIssueTracker extends BaseIssueTracker
 
         $issues = [];
 
-        foreach ($resultArray['issues'] as $issue) {
+        foreach ($this->client->getResultPager()->fetch($resultArray, 'issues') as $issue) {
             $issues[] = $this->adaptIssueStructure($issue);
         }
+
+        $this->client->getResultPager()->setPage(null);
 
         return $issues;
     }
