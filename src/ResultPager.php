@@ -150,7 +150,7 @@ class ResultPager
         }
 
         $fullResult = $result[$valuesKey];
-        if ($this->perPage <= 50) {
+        if ($this->perPage !== null && $this->perPage <= 50) {
             return $fullResult;
         }
 
@@ -164,9 +164,9 @@ class ResultPager
         $url = $request->getHost().$urlComponents['path'].'?';
         $limit = $urlComponents['query']['limit'];
         $count = isset($result['count']) ? $result['count'] : $urlComponents['limit'];
-        $pages = ceil($count / $this->perPage);
+        $pages = ceil($count / $limit);
 
-        for ($page = $this->page + 1; $page < $pages; $page++) {
+        for ($page = $this->page + 1; $page <= $pages; $page++) {
             $urlComponents['query']['start'] = abs($page - 1) * $limit;
 
             $response = $this->client->get($url.http_build_query($urlComponents['query'], '', '&'));
