@@ -83,6 +83,58 @@ class BitbucketIssueTracker extends BaseIssueTracker
         return sprintf('%s/%s/%s/issue/%d', $this->domain, $this->getUsername(), $this->getRepository(), $id);
     }
 
+    protected function detectLabelType($label)
+    {
+        if (in_array($label, static::$validPriorities)) {
+            return 'priority';
+        }
+
+        if (in_array($label, static::$validKinds)) {
+            return 'kind';
+        }
+
+        if (preg_match('/^(v?\d+(\.\d+)*|PR-?\d+)/i', $label)) {
+            return 'version';
+        }
+
+        return 'component';
+    }
+
+    protected function prepareFilter(array $parameters)
+    {
+        $paramConvert = [
+            'created' => ['utc_created_on', 'date'],
+            'updated' => ['utc_last_updated', 'date'],
+            'state' => ['status', 'string'],
+            'creator' => ['reported_by', 'string'],
+            'assignee' => ['responsible', 'string'],
+            'milestone' => ['milestone', 'string'],
+        ];
+
+        $newParams = [];
+
+        if (!empty($parameters['sort'])) {
+            if (isset($parameters['direction']) && 'desc' === $parameters['direction']) {
+                $newParams['sort'] = '-'.$paramConvert[$parameters['sort']][0];
+            } else {
+                $newParams['sort'] = $paramConvert[$parameters['sort']][0];
+            }
+        }
+
+        foreach ($paramConvert as $name => $param) {
+            if (!empty($parameters[$name])) {
+                $newParams[$paramConvert[$name][0]] = $parameters[$name];
+            }
+        }
+
+        // Filter only support one condition (no or-case), so its emulated when there is more then one
+        if (!empty($parameters['labels']) && false === strpos($parameters['labels'], ',')) {
+            $newParams[$this->detectLabelType($parameters['labels'])] = $parameters['labels'];
+        }
+
+        return $newParams;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -91,17 +143,86 @@ class BitbucketIssueTracker extends BaseIssueTracker
         $this->client->getResultPager()->setPerPage(null);
         $this->client->getResultPager()->setPage(1);
 
+        // since, labels and mentioned are supported, but requires an API change or custom resultPager when limiting
+
         $response = $this->client->apiIssues()->all(
             $this->getUsername(),
             $this->getRepository(),
-            $this->prepareParameters($parameters)
+            $this->prepareParameters(
+                $this->prepareFilter($parameters)
+            )
         );
 
         $resultArray = json_decode($response->getContent(), true);
-
         $issues = [];
 
+        $priorities = [];
+        $kinds = [];
+        $versions = [];
+        $components = [];
+
+        if (!empty($parameters['labels']) && false !== strpos($parameters['labels'], ',')) {
+            $labels = explode(',', $parameters['labels']);
+            $labels = array_map('trim', $labels);
+
+            foreach ($labels as $label) {
+                switch ($this->detectLabelType($label)) {
+                    case 'priority':
+                        $priorities[] = $label;
+                        break;
+
+                    case 'kind':
+                        $kinds[] = $label;
+                        break;
+
+                    case 'version':
+                        $versions[] = $label;
+                        break;
+
+                    default:
+                        $components[] = $label;
+                        break;
+                }
+            }
+        }
+
+        if (!empty($parameters['since'])) {
+            $parameters['since'] = strtotime($parameters['since']);
+        }
+
         foreach ($this->client->getResultPager()->fetch($resultArray, 'issues') as $issue) {
+            if (!empty($parameters['since'])) {
+                $issueSince = empty($issue['utc_last_updated']) ? $issue['utc_created_on'] : $issue['utc_last_updated'];
+                $issueSince = strtotime($issueSince);
+
+                // Only issues updated at or after this time are returned.
+                if ($parameters['since'] < $issueSince) {
+                    continue;
+                }
+            }
+
+            // Note this also match in markdown
+            // Use a regex to prevent half name matches, @user also matching @username
+            if (!empty($parameters['mentioned']) && !preg_match(sprintf('{@%s($|\s)}', preg_quote($parameters['mentioned'])), $issue['content'])) {
+                continue;
+            }
+
+            if ([] !== $priorities && !in_array($issue['priority'], $priorities, true)) {
+                continue;
+            }
+
+            if ([] !== $kinds && !in_array($issue['metadata']['kind'], $kinds, true)) {
+                continue;
+            }
+
+            if ([] !== $versions && !in_array($issue['metadata']['version'], $versions, true)) {
+                continue;
+            }
+
+            if ([] !== $components && !in_array($issue['metadata']['component'], $components, true)) {
+                continue;
+            }
+
             $issues[] = $this->adaptIssueStructure($issue);
         }
 
@@ -309,6 +430,10 @@ class BitbucketIssueTracker extends BaseIssueTracker
             $labels[] = $issue['metadata']['component'];
         }
 
+        if (!empty($issue['metadata']['version'])) {
+            $labels[] = $issue['metadata']['version'];
+        }
+
         return [
             'url'          => $this->getIssueUrl($issue['local_id']),
             'number'       => $issue['local_id'],
@@ -323,38 +448,6 @@ class BitbucketIssueTracker extends BaseIssueTracker
             'updated_at'   => !empty($issue['utc_last_updated']) ? new \DateTime($issue['utc_last_updated']) : null,
             'closed_by'    => null,
             'pull_request' => false,
-        ];
-    }
-
-    protected function adaptPullRequestStructure(array $pr)
-    {
-        return [
-            'url'          => $pr['html_url'],
-            'number'       => $pr['number'],
-            'state'        => $pr['state'],
-            'title'        => $pr['title'],
-            'body'         => $pr['body'],
-            'labels'       => [],
-            'milestone'    => null,
-            'created_at'   => new \DateTime($pr['created_at']),
-            'updated_at'   => !empty($pr['updated_at']) ? new \DateTime($pr['updated_at']) : null,
-            'user'         => $pr['user']['login'],
-            'assignee'     => null,
-            'merge_commit' => null, // empty as GitHub doesn't provide this yet, merge_commit_sha is deprecated and not meant for this
-            'merged'       => isset($pr['merged_by']) && isset($pr['merged_by']['login']),
-            'merged_by'    => isset($pr['merged_by']) && isset($pr['merged_by']['login']) ? $pr['merged_by']['login'] : '',
-            'head' => [
-                'ref' =>  $pr['head']['ref'],
-                'sha'  => $pr['head']['sha'],
-                'user' => $pr['head']['user']['login'],
-                'repo' => $pr['head']['repo']['name'],
-            ],
-            'base' => [
-              'ref'   => $pr['base']['ref'],
-              'label' => $pr['base']['label'],
-              'sha'   => $pr['base']['sha'],
-              'repo'  => $pr['base']['repo']['name'],
-            ],
         ];
     }
 }
