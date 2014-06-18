@@ -31,7 +31,7 @@ class BitbucketFactory
     public static function createAdapterConfigurator(HelperSet $helperSet)
     {
         $configurator = new BitBucketConfigurator(
-            $helperSet->get('dialog'),
+            $helperSet->get('question'),
             'Bitbucket',
             'https://api.bitbucket.org',
             'https://bitbucket.org'

@@ -11,9 +11,11 @@
 
 namespace Gush\Adapter;
 
-use Symfony\Component\Console\Helper\DialogHelper;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Question\Question;
 
 /**
  * BitBucketConfigurator is the Configurator class for BitBucket configuring.
@@ -27,14 +29,14 @@ class BitBucketConfigurator extends DefaultConfigurator
     /**
      * Constructor.
      *
-     * @param DialogHelper $dialog  DialogHelper instance
-     * @param string       $label   Label of the Configurator (eg. BitBucket or BitBucket IssueTracker)
-     * @param string       $apiUrl  Default URL to API service (eg. 'https://api.bitbucket.org')
-     * @param string       $repoUrl Default URL to repository (eg. 'https://bitbucket.org')
+     * @param QuestionHelper $questionHelper  QuestionHelper instance
+     * @param string         $label   Label of the Configurator (eg. BitBucket or BitBucket IssueTracker)
+     * @param string         $apiUrl  Default URL to API service (eg. 'https://api.bitbucket.org')
+     * @param string         $repoUrl Default URL to repository (eg. 'https://bitbucket.org')
      */
-    public function __construct(DialogHelper $dialog, $label, $apiUrl, $repoUrl)
+    public function __construct(QuestionHelper $questionHelper, $label, $apiUrl, $repoUrl)
     {
-        $this->dialog = $dialog;
+        $this->questionHelper = $questionHelper;
         $this->label = $label;
         $this->apiUrl = $apiUrl;
         $this->repoUrl = $repoUrl;
@@ -61,39 +63,46 @@ class BitBucketConfigurator extends DefaultConfigurator
             $this->authenticationOptions
         );
 
-        $authenticationType = $this->dialog->select(
+        $authenticationType = $this->questionHelper->ask(
+            $input,
             $output,
-            'Choose '.$this->label.' authentication type:',
-            $authenticationLabels,
-            0
+            new ChoiceQuestion(
+                sprintf('Choose %s authentication type:', $this->label),
+                $authenticationLabels,
+                0
+            )
         );
-
+ladybug_dump_die($authenticationType);
         $config['authentication'] = [];
         $config['authentication']['http-auth-type'] = $this->authenticationOptions[$authenticationType][1];
 
-        $config['authentication']['username'] = $this->dialog->askAndValidate(
+        $config['authentication']['username'] = $this->questionHelper->ask(
+            $input,
             $output,
-            'Username: ',
-            [$this, 'validateNoneEmpty']
+            (new Question('Username: '))->setValidator([$this, 'validateNoneEmpty'])
         );
 
         if (static::AUTH_HTTP_TOKEN === $config['authentication']['http-auth-type']) {
-            $config['authentication']['key'] = $this->dialog->askAndValidate(
+            $config['authentication']['key'] = $this->questionHelper->ask(
+                $input,
                 $output,
-                'Key: ',
-                [$this, 'validateNoneEmpty']
+                (new Question('Key: '))->setValidator([$this, 'validateNoneEmpty'])
             );
 
-            $config['authentication']['secret'] = $this->dialog->askHiddenResponseAndValidate(
+            $config['authentication']['secret'] = $this->questionHelper->ask(
+                $input,
                 $output,
-                'Secret: ',
-                [$this, 'validateNoneEmpty']
+                (new Question('Secret: '))
+                    ->setHidden(true)
+                    ->setValidator([$this, 'validateNoneEmpty'])
             );
         } else {
-            $config['authentication']['password'] = $this->dialog->askHiddenResponseAndValidate(
+            $config['authentication']['password'] = $this->questionHelper->ask(
+                $input,
                 $output,
-                'Password: ',
-                [$this, 'validateNoneEmpty']
+                (new Question('Password: '))
+                    ->setValidator([$this, 'validateNoneEmpty'])
+                    ->setHidden(true)
             );
         }
 
