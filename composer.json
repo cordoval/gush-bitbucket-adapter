@@ -17,8 +17,8 @@
         }
     ],
     "require": {
-        "gentle/bitbucket-api": "~0.4",
-        "gushphp/gush": "*"
+        "gentle/bitbucket-api": "~0.5",
+        "gushphp/gush": "~1.6"
     },
     "autoload": {
         "psr-4": {

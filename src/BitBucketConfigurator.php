@@ -63,16 +63,19 @@ class BitBucketConfigurator extends DefaultConfigurator
             $this->authenticationOptions
         );
 
-        $authenticationType = $this->questionHelper->ask(
-            $input,
-            $output,
-            new ChoiceQuestion(
-                sprintf('Choose %s authentication type:', $this->label),
-                $authenticationLabels,
-                0
-            )
+        $authenticationType = array_search(
+            $this->questionHelper->ask(
+                $input,
+                $output,
+                new ChoiceQuestion(
+                    'Choose '.$this->label.' authentication type:',
+                    $authenticationLabels,
+                    $authenticationLabels[0]
+                )
+            ),
+            $authenticationLabels
         );
-ladybug_dump_die($authenticationType);
+
         $config['authentication'] = [];
         $config['authentication']['http-auth-type'] = $this->authenticationOptions[$authenticationType][1];
 
